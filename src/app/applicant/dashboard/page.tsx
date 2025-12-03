@@ -8,11 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 
 export default function ApplicantDashboardPage() {
@@ -23,7 +19,7 @@ export default function ApplicantDashboardPage() {
       <div className="container mx-auto py-8">
         <Card>
           <CardContent className="py-8">
-            <p className="text-center text-muted-foreground">Loading...</p>
+            <p className="text-muted-foreground text-center">Loading...</p>
           </CardContent>
         </Card>
       </div>
@@ -35,7 +31,7 @@ export default function ApplicantDashboardPage() {
       <div className="container mx-auto py-8">
         <Card>
           <CardContent className="py-8">
-            <p className="text-center text-destructive">
+            <p className="text-destructive text-center">
               {error?.message || "Failed to load application"}
             </p>
           </CardContent>
@@ -44,10 +40,18 @@ export default function ApplicantDashboardPage() {
     );
   }
 
-  const { application, user, roles, languages, skills, experiences, pathAnswers } = data;
+  const {
+    application,
+    user,
+    roles,
+    languages,
+    skills,
+    experiences,
+    pathAnswers,
+  } = data;
 
   return (
-    <div className="container mx-auto py-8 max-w-4xl">
+    <div className="container mx-auto max-w-4xl py-8">
       <Card>
         <CardHeader>
           <CardTitle>My Application</CardTitle>
@@ -59,8 +63,10 @@ export default function ApplicantDashboardPage() {
           <FieldGroup>
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <h3 className="mb-4 text-lg font-semibold">
+                  Basic Information
+                </h3>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                   <Field>
                     <FieldLabel>Full Name</FieldLabel>
                     <p className="text-sm">{application.fullName}</p>
@@ -71,7 +77,9 @@ export default function ApplicantDashboardPage() {
                         <FieldLabel>Email</FieldLabel>
                         <p className="text-sm">{user.email}</p>
                         {user.emailVerified && (
-                          <span className="text-xs text-green-600">✓ Verified</span>
+                          <span className="text-xs text-green-600">
+                            ✓ Verified
+                          </span>
                         )}
                       </Field>
                       {user.phone && (
@@ -132,7 +140,7 @@ export default function ApplicantDashboardPage() {
                 <>
                   <Separator />
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">
+                    <h3 className="mb-4 text-lg font-semibold">
                       Languages & Levels
                     </h3>
                     <div className="space-y-2">
@@ -153,7 +161,7 @@ export default function ApplicantDashboardPage() {
                 <>
                   <Separator />
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">
+                    <h3 className="mb-4 text-lg font-semibold">
                       Role(s) of Interest
                     </h3>
                     <div className="space-y-2">
@@ -161,7 +169,7 @@ export default function ApplicantDashboardPage() {
                         <div key={role.id}>
                           <span className="font-medium">{role.name}</span>
                           {role.description && (
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                               {role.description}
                             </p>
                           )}
@@ -176,20 +184,20 @@ export default function ApplicantDashboardPage() {
                 <>
                   <Separator />
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">
+                    <h3 className="mb-4 text-lg font-semibold">
                       Previous Experiences
                     </h3>
                     <div className="space-y-4">
                       {experiences.map((exp) => (
-                        <div key={exp.id} className="border rounded-lg p-4">
-                          <div className="flex justify-between items-start mb-2">
+                        <div key={exp.id} className="rounded-lg border p-4">
+                          <div className="mb-2 flex items-start justify-between">
                             <div>
                               <p className="font-medium">{exp.role}</p>
-                              <p className="text-sm text-muted-foreground">
+                              <p className="text-muted-foreground text-sm">
                                 {exp.company}
                               </p>
                             </div>
-                            <p className="text-sm text-muted-foreground">
+                            <p className="text-muted-foreground text-sm">
                               {new Date(exp.startDate).toLocaleDateString()} -{" "}
                               {exp.endDate
                                 ? new Date(exp.endDate).toLocaleDateString()
@@ -197,10 +205,10 @@ export default function ApplicantDashboardPage() {
                             </p>
                           </div>
                           {exp.description && (
-                            <p className="text-sm mt-2">{exp.description}</p>
+                            <p className="mt-2 text-sm">{exp.description}</p>
                           )}
                           {exp.achievements && (
-                            <p className="text-sm mt-2 text-muted-foreground">
+                            <p className="text-muted-foreground mt-2 text-sm">
                               {exp.achievements}
                             </p>
                           )}
@@ -215,7 +223,7 @@ export default function ApplicantDashboardPage() {
                 <>
                   <Separator />
                   <div>
-                    <h3 className="text-lg font-semibold mb-4">
+                    <h3 className="mb-4 text-lg font-semibold">
                       Path-Specific Answers
                     </h3>
                     <div className="space-y-4">
@@ -224,7 +232,7 @@ export default function ApplicantDashboardPage() {
                           <FieldLabel className="font-medium">
                             {answer.question?.questionText}
                           </FieldLabel>
-                          <p className="text-sm mt-1">{answer.answer}</p>
+                          <p className="mt-1 text-sm">{answer.answer}</p>
                         </div>
                       ))}
                     </div>
@@ -238,4 +246,3 @@ export default function ApplicantDashboardPage() {
     </div>
   );
 }
-

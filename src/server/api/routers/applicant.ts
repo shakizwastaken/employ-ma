@@ -162,7 +162,10 @@ export const applicantRouter = createTRPCRouter({
             },
           });
 
-          if (!signUpResult || ("error" in signUpResult && signUpResult.error)) {
+          if (
+            !signUpResult ||
+            ("error" in signUpResult && signUpResult.error)
+          ) {
             throw new TRPCError({
               code: "INTERNAL_SERVER_ERROR",
               message: "Failed to create user account",
@@ -379,7 +382,11 @@ export const applicantRouter = createTRPCRouter({
               .returning()
               .then((exps) => exps[0]);
 
-            if (newExperience && exp.linkedSkillIds && exp.linkedSkillIds.length > 0) {
+            if (
+              newExperience &&
+              exp.linkedSkillIds &&
+              exp.linkedSkillIds.length > 0
+            ) {
               // Link skills to experience if provided
               for (const skillId of exp.linkedSkillIds) {
                 // Verify skill belongs to this application
@@ -667,7 +674,13 @@ export const applicantRouter = createTRPCRouter({
             skill: z.string().min(1),
             educationMethod: z.string().min(1),
             institution: z.string().optional().nullable(),
-            year: z.number().int().min(1900).max(new Date().getFullYear()).optional().nullable(),
+            year: z
+              .number()
+              .int()
+              .min(1900)
+              .max(new Date().getFullYear())
+              .optional()
+              .nullable(),
           }),
         ),
       }),
@@ -741,7 +754,11 @@ export const applicantRouter = createTRPCRouter({
             company: z.string().min(1),
             role: z.string().min(1),
             startDate: z.string().transform((str) => new Date(str)),
-            endDate: z.string().transform((str) => new Date(str)).optional().nullable(),
+            endDate: z
+              .string()
+              .transform((str) => new Date(str))
+              .optional()
+              .nullable(),
             description: z.string().optional().nullable(),
             achievements: z.string().optional().nullable(), // Can be JSON string
             isCurrent: z.boolean(),
