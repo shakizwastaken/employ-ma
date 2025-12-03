@@ -36,7 +36,6 @@ import {
   PreviousExperienceForm,
   type PreviousExperience,
 } from "@/components/previous-experience-form";
-import { OtpVerification } from "@/components/otp-verification";
 import { authClient } from "@/server/better-auth/client";
 import { cn } from "@/lib/utils";
 
@@ -46,8 +45,7 @@ type StepType =
   | "role"
   | "skills"
   | "experiences"
-  | "path-questions"
-  | "verify";
+  | "path-questions";
 
 interface Language {
   language: string;
@@ -81,6 +79,9 @@ export function ApplicationForm() {
   const [experiences, setExperiences] = useState<PreviousExperience[]>([]);
   const [pathAnswers, setPathAnswers] = useState<Record<string, string>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
+
+  // Development mode - use NEXT_PUBLIC env variable (accessible in client)
+  const isDev = process.env.NEXT_PUBLIC_NODE_ENV === "development";
 
   // Queries
   const { data: roles } = api.applicant.getRoles.useQuery();
@@ -118,13 +119,111 @@ export function ApplicationForm() {
       });
     }
 
-    // Add verification
-    baseSteps.push({ id: "verify", label: "Verification" });
-
     return baseSteps;
   }, [pathQuestionSteps.length]);
 
   const currentStep = steps[currentStepIndex];
+
+  // Development mode: Pre-fill form values step by step
+  useEffect(() => {
+    if (!isDev) return;
+
+    const stepId = currentStep?.id;
+    if (!stepId) return;
+
+    switch (stepId) {
+      case "personal":
+        if (!fullName) setFullName("John Doe");
+        if (!email) setEmail("john.doe@example.com");
+        if (!phone) setPhone("+1 (555) 123-4567");
+        if (!city) setCity("San Francisco");
+        break;
+      case "professional":
+        if (!currentJobStatus) setCurrentJobStatus("employed");
+        if (!yearsOfExperience) setYearsOfExperience("5");
+        if (!highestEducationLevel) setHighestEducationLevel("bachelor");
+        if (!availability) setAvailability("full-time");
+        break;
+      case "role":
+        if (!selectedRoleId && roles && roles.length > 0) {
+          setSelectedRoleId(roles[0]!.id);
+        }
+        break;
+      case "skills":
+        if (skills.length === 0) {
+          setSkills([
+            {
+              id: "dev-skill-1",
+              skill: "JavaScript",
+              educationMethod: "bachelor",
+              institution: "University",
+              year: 2020,
+            },
+            {
+              id: "dev-skill-2",
+              skill: "React",
+              educationMethod: "self-taught",
+              institution: undefined,
+              year: 2021,
+            },
+          ]);
+        }
+        break;
+      case "experiences":
+        if (experiences.length === 0) {
+          const now = new Date();
+          const startDate = new Date(now.getFullYear() - 2, 0, 1);
+          setExperiences([
+            {
+              id: "dev-exp-1",
+              company: "Tech Corp",
+              role: "Software Engineer",
+              startDate: startDate.toISOString().split("T")[0]!,
+              endDate: undefined,
+              description:
+                "Developed and maintained web applications using React and Node.js",
+              achievements:
+                "Led a team of 3 developers, improved performance by 40%",
+              isCurrent: true,
+              order: 0,
+              linkedSkillIds: [],
+            },
+          ]);
+        }
+        break;
+      case "path-questions":
+        if (questionsData?.questions) {
+          const newAnswers = { ...pathAnswers };
+          let hasChanges = false;
+          questionsData.questions.forEach((q) => {
+            if (!newAnswers[q.id]) {
+              hasChanges = true;
+              if (q.questionType === "textarea" || q.questionType === "text") {
+                newAnswers[q.id] =
+                  "This is a sample answer for development testing.";
+              } else if (
+                q.questionType === "select" ||
+                q.questionType === "radio"
+              ) {
+                const options = q.options ? JSON.parse(q.options) : [];
+                if (options.length > 0) {
+                  newAnswers[q.id] = options[0];
+                } else {
+                  newAnswers[q.id] = "Option 1";
+                }
+              } else {
+                newAnswers[q.id] = "Sample answer";
+              }
+            }
+          });
+          if (hasChanges) {
+            setPathAnswers(newAnswers);
+          }
+        }
+        break;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStep?.id, isDev]);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   // Mutations
@@ -154,25 +253,11 @@ export function ApplicationForm() {
       setCompletedSteps(new Set([...completedSteps, currentStepIndex]));
       setShowSuccess(true);
       setTimeout(() => {
-        setIsTransitioning(true);
-        setTimeout(() => {
-          goToNextStep();
-          setIsTransitioning(false);
-          setShowSuccess(false);
-        }, 300);
+        router.push("/app");
       }, 1500);
     },
     onError: (error) => {
       setError(error.message || "Failed to submit answers");
-    },
-  });
-
-  const verifyEmail = api.applicant.verifyEmail.useMutation({
-    onSuccess: () => {
-      router.push("/applicant/dashboard");
-    },
-    onError: (error) => {
-      setError(error.message || "Failed to verify email");
     },
   });
 
@@ -302,17 +387,6 @@ export function ApplicationForm() {
       }
     } else {
       goToNextStep();
-    }
-  };
-
-  const handleResendOtp = async () => {
-    try {
-      await authClient.emailOtp.sendVerificationOtp({
-        email,
-        type: "email-verification",
-      });
-    } catch (err) {
-      setError("Failed to resend code");
     }
   };
 
@@ -579,20 +653,6 @@ export function ApplicationForm() {
           </FieldGroup>
         );
 
-      case "verify":
-        return (
-          <OtpVerification
-            email={email}
-            onVerify={async (otp) => {
-              await verifyEmail.mutateAsync({ email, otp });
-            }}
-            onResend={handleResendOtp}
-            type="email-verification"
-            isLoading={verifyEmail.isPending}
-            error={error}
-          />
-        );
-
       default:
         return null;
     }
@@ -666,28 +726,26 @@ export function ApplicationForm() {
               {renderStepContent()}
             </div>
 
-            {currentStep.id !== "verify" && (
-              <FormStepNavigation
-                onPrevious={goToPreviousStep}
-                canGoPrevious={currentStepIndex > 0}
-                canGoNext={validateCurrentStep()}
-                isSubmitting={
-                  submitApplication.isPending || submitPathAnswers.isPending
-                }
-                nextLabel={
-                  currentStep.id === "experiences"
-                    ? "Continue to Questions →"
-                    : currentStep.id === "path-questions" &&
-                        getCurrentPathQuestionStep() &&
-                        steps
-                          .slice(0, currentStepIndex)
-                          .filter((s) => s.id === "path-questions").length ===
-                          pathQuestionSteps.length - 1
-                      ? "Continue to Verification →"
-                      : "Next →"
-                }
-              />
-            )}
+            <FormStepNavigation
+              onPrevious={goToPreviousStep}
+              canGoPrevious={currentStepIndex > 0}
+              canGoNext={validateCurrentStep()}
+              isSubmitting={
+                submitApplication.isPending || submitPathAnswers.isPending
+              }
+              nextLabel={
+                currentStep.id === "experiences"
+                  ? "Continue to Questions →"
+                  : currentStep.id === "path-questions" &&
+                      getCurrentPathQuestionStep() &&
+                      steps
+                        .slice(0, currentStepIndex)
+                        .filter((s) => s.id === "path-questions").length ===
+                        pathQuestionSteps.length - 1
+                    ? "Submit Application →"
+                    : "Next →"
+              }
+            />
           </form>
         </CardContent>
       </Card>

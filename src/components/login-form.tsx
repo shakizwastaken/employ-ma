@@ -45,7 +45,7 @@ export function LoginForm({
       if (result.error) {
         setError(result.error.message || "Failed to sign in");
       } else {
-        router.push("/");
+        router.push("/app");
         router.refresh();
       }
     } catch (err) {
@@ -55,21 +55,21 @@ export function LoginForm({
     }
   };
 
-  const handleGithubSignIn = async () => {
+  const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
       const result = await authClient.signIn.social({
-        provider: "github",
-        callbackURL: "/",
+        provider: "google",
+        callbackURL: "/app",
       });
       if (!result.error && "url" in result.data && result.data.url) {
         window.location.href = result.data.url;
       } else if (result.error) {
-        setError("Failed to sign in with GitHub");
+        setError("Failed to sign in with Google");
         setIsLoading(false);
       }
     } catch (err) {
-      setError("Failed to sign in with GitHub");
+      setError("Failed to sign in with Google");
       setIsLoading(false);
     }
   };
@@ -131,10 +131,10 @@ export function LoginForm({
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={handleGithubSignIn}
+                  onClick={handleGoogleSignIn}
                   disabled={isLoading}
                 >
-                  Login with GitHub
+                  Login with Google
                 </Button>
                 <FieldDescription className="text-center">
                   Don&apos;t have an account?{" "}

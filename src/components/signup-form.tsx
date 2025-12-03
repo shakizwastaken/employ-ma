@@ -49,7 +49,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       if (result.error) {
         setError(result.error.message || "Failed to create account");
       } else {
-        router.push("/");
+        router.push("/app");
         router.refresh();
       }
     } catch (err) {
@@ -59,21 +59,21 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
     }
   };
 
-  const handleGithubSignUp = async () => {
+  const handleGoogleSignUp = async () => {
     setIsLoading(true);
     try {
       const result = await authClient.signIn.social({
-        provider: "github",
-        callbackURL: "/",
+        provider: "google",
+        callbackURL: "/app",
       });
       if (!result.error && "url" in result.data && result.data.url) {
         window.location.href = result.data.url;
       } else if (result.error) {
-        setError("Failed to sign up with GitHub");
+        setError("Failed to sign up with Google");
         setIsLoading(false);
       }
     } catch (err) {
-      setError("Failed to sign up with GitHub");
+      setError("Failed to sign up with Google");
       setIsLoading(false);
     }
   };
@@ -142,10 +142,10 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
                 <Button
                   variant="outline"
                   type="button"
-                  onClick={handleGithubSignUp}
+                  onClick={handleGoogleSignUp}
                   disabled={isLoading}
                 >
-                  Sign up with GitHub
+                  Sign up with Google
                 </Button>
                 <FieldDescription className="px-6 text-center">
                   Already have an account?{" "}

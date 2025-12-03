@@ -11,7 +11,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
 
-export default function ApplicantDashboardPage() {
+export default function AppPage() {
   const { data, isLoading, error } = api.applicant.getMyApplication.useQuery();
 
   if (isLoading) {
@@ -246,3 +246,4 @@ export default function ApplicantDashboardPage() {
     </div>
   );
 }
+
