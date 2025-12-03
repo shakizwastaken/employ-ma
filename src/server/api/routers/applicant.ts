@@ -18,6 +18,7 @@ import {
   applicationExperience,
   experienceSkill,
   user,
+  account,
 } from "@/server/db/schema";
 import { auth } from "@/server/better-auth";
 
@@ -863,5 +864,651 @@ export const applicantRouter = createTRPCRouter({
       }
 
       return { success: true };
+    }),
+
+  checkUserByEmail: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Check if user exists
+      const userRecord = await ctx.db
+        .select()
+        .from(user)
+        .where(eq(user.email, input.email))
+        .limit(1)
+        .then((users) => users[0]);
+
+      if (!userRecord) {
+        return {
+          exists: false,
+          hasAccount: false,
+          emailVerified: false,
+        };
+      }
+
+      // Check if user has an account (password-based account)
+      const userAccount = await ctx.db
+        .select()
+        .from(account)
+        .where(
+          and(
+            eq(account.userId, userRecord.id),
+            eq(account.providerId, "credential"),
+          ),
+        )
+        .limit(1)
+        .then((accounts) => accounts[0]);
+
+      // Check if application exists
+      const applicationRecord = await ctx.db
+        .select()
+        .from(application)
+        .where(eq(application.userId, userRecord.id))
+        .limit(1)
+        .then((applications) => applications[0]);
+
+      return {
+        exists: true,
+        hasAccount: !!userAccount,
+        emailVerified: userRecord.emailVerified,
+        applicationId: applicationRecord?.id,
+        userId: userRecord.id,
+      };
+    }),
+
+  getPartialApplication: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      // Get user
+      const userRecord = await ctx.db
+        .select()
+        .from(user)
+        .where(eq(user.email, input.email))
+        .limit(1)
+        .then((users) => users[0]);
+
+      if (!userRecord || userRecord.emailVerified) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Application not found or already verified",
+        });
+      }
+
+      // Get application
+      const applicationRecord = await ctx.db
+        .select()
+        .from(application)
+        .where(eq(application.userId, userRecord.id))
+        .limit(1)
+        .then((applications) => applications[0]);
+
+      if (!applicationRecord) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Application not found",
+        });
+      }
+
+      // Get roles
+      const applicationRoles = await ctx.db
+        .select({
+          role: role,
+        })
+        .from(applicationRole)
+        .innerJoin(role, eq(applicationRole.roleId, role.id))
+        .where(eq(applicationRole.applicationId, applicationRecord.id));
+
+      // Get languages
+      const languages = await ctx.db
+        .select()
+        .from(applicationLanguage)
+        .where(eq(applicationLanguage.applicationId, applicationRecord.id));
+
+      // Get skills
+      const skills = await ctx.db
+        .select()
+        .from(applicationSkill)
+        .where(eq(applicationSkill.applicationId, applicationRecord.id));
+
+      // Get experiences
+      const experiences = await ctx.db
+        .select()
+        .from(applicationExperience)
+        .where(eq(applicationExperience.applicationId, applicationRecord.id))
+        .orderBy(applicationExperience.order);
+
+      // Get experience-skill links
+      const experienceIds = experiences.map((e) => e.id);
+      const experienceSkillLinks =
+        experienceIds.length > 0
+          ? await ctx.db
+              .select()
+              .from(experienceSkill)
+              .where(inArray(experienceSkill.experienceId, experienceIds))
+          : [];
+
+      // Get path answers
+      const answers = await ctx.db
+        .select({
+          answer: pathAnswer,
+          template: questionTemplate,
+        })
+        .from(pathAnswer)
+        .innerJoin(
+          questionTemplate,
+          eq(pathAnswer.templateId, questionTemplate.id),
+        )
+        .where(eq(pathAnswer.applicationId, applicationRecord.id));
+
+      return {
+        application: applicationRecord,
+        user: {
+          email: userRecord.email,
+          phone: userRecord.phone,
+          name: userRecord.name,
+        },
+        roles: applicationRoles.map((ar) => ar.role),
+        languages,
+        skills,
+        experiences: experiences.map((exp) => ({
+          ...exp,
+          startDate: exp.startDate.toISOString().split("T")[0]!,
+          endDate: exp.endDate
+            ? exp.endDate.toISOString().split("T")[0]
+            : undefined,
+          linkedSkillIds:
+            experienceSkillLinks
+              .filter((link) => link.experienceId === exp.id)
+              .map((link) => link.skillId) || [],
+        })),
+        pathAnswers: answers.map((a) => ({
+          ...a.answer,
+          question: a.template,
+        })),
+      };
+    }),
+
+  savePartialApplication: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        fullName: z.string().optional(),
+        phone: z.string().optional(),
+        city: z.string().optional(),
+        currentJobStatus: z.string().optional(),
+        yearsOfExperience: z.number().int().min(0).optional(),
+        highestEducationLevel: z.string().optional(),
+        availability: z.enum(["full-time", "part-time"]).optional(),
+        roleId: z.string().optional(),
+        languages: z
+          .array(
+            z.object({
+              language: z.string().min(1),
+              level: z.string().min(1),
+            }),
+          )
+          .optional(),
+        skills: z
+          .array(
+            z.object({
+              id: z.string().optional(),
+              skill: z.string().min(1),
+              educationMethod: z.string().min(1),
+              institution: z.string().optional().nullable(),
+              year: z.number().int().optional().nullable(),
+            }),
+          )
+          .optional(),
+        experiences: z
+          .array(
+            z.object({
+              id: z.string().optional(),
+              company: z.string().min(1),
+              role: z.string().min(1),
+              startDate: z.string(),
+              endDate: z.string().optional().nullable(),
+              description: z.string().optional().nullable(),
+              achievements: z.string().optional().nullable(),
+              isCurrent: z.boolean(),
+              order: z.number().int().min(0),
+              linkedSkillIds: z.array(z.string()).optional(),
+            }),
+          )
+          .optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Find or create user
+      let userRecord = await ctx.db
+        .select()
+        .from(user)
+        .where(eq(user.email, input.email))
+        .limit(1)
+        .then((users) => users[0]);
+
+      if (!userRecord) {
+        // Create new user account (without password)
+        try {
+          const signUpResult = await auth.api.signUpEmail({
+            body: {
+              email: input.email,
+              password: crypto.randomUUID(), // Generate random password
+              name: input.fullName || input.email.split("@")[0]!,
+            },
+          });
+
+          if (
+            !signUpResult ||
+            ("error" in signUpResult && signUpResult.error)
+          ) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to create user account",
+            });
+          }
+
+          userRecord = await ctx.db
+            .select()
+            .from(user)
+            .where(eq(user.email, input.email))
+            .limit(1)
+            .then((users) => users[0]);
+
+          if (!userRecord) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "User account created but not found",
+            });
+          }
+        } catch (error) {
+          // If user already exists, fetch it
+          userRecord = await ctx.db
+            .select()
+            .from(user)
+            .where(eq(user.email, input.email))
+            .limit(1)
+            .then((users) => users[0]);
+
+          if (!userRecord) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "Failed to create or find user account",
+            });
+          }
+        }
+      } else if (!userRecord.emailVerified && input.fullName) {
+        // Update user name if provided and not verified
+        await ctx.db
+          .update(user)
+          .set({ name: input.fullName, updatedAt: new Date() })
+          .where(eq(user.id, userRecord.id));
+        userRecord.name = input.fullName;
+      }
+
+      // Update user phone if provided and not verified
+      if (!userRecord.emailVerified && input.phone) {
+        await ctx.db
+          .update(user)
+          .set({ phone: input.phone, updatedAt: new Date() })
+          .where(eq(user.id, userRecord.id));
+      }
+
+      // Check if application exists
+      let applicationRecord = await ctx.db
+        .select()
+        .from(application)
+        .where(eq(application.userId, userRecord.id))
+        .limit(1)
+        .then((applications) => applications[0]);
+
+      if (!applicationRecord) {
+        // Create new application with partial data
+        const newApplication = await ctx.db
+          .insert(application)
+          .values({
+            userId: userRecord.id,
+            fullName: input.fullName || userRecord.name,
+            city: input.city || "",
+            currentJobStatus: input.currentJobStatus || "",
+            yearsOfExperience: input.yearsOfExperience ?? 0,
+            highestEducationLevel: input.highestEducationLevel || "",
+            availability: input.availability || "full-time",
+          })
+          .returning()
+          .then((apps) => apps[0]);
+
+        if (!newApplication) {
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "Failed to create application",
+          });
+        }
+        applicationRecord = newApplication;
+      } else if (!userRecord.emailVerified) {
+        // Update existing application with partial data
+        await ctx.db
+          .update(application)
+          .set({
+            fullName: input.fullName ?? applicationRecord.fullName,
+            city: input.city ?? applicationRecord.city,
+            currentJobStatus:
+              input.currentJobStatus ?? applicationRecord.currentJobStatus,
+            yearsOfExperience:
+              input.yearsOfExperience ?? applicationRecord.yearsOfExperience,
+            highestEducationLevel:
+              input.highestEducationLevel ??
+              applicationRecord.highestEducationLevel,
+            availability: input.availability ?? applicationRecord.availability,
+            updatedAt: new Date(),
+          })
+          .where(eq(application.id, applicationRecord.id));
+      }
+
+      // Handle role assignment if provided
+      if (input.roleId) {
+        const existingRoles = await ctx.db
+          .select()
+          .from(applicationRole)
+          .where(eq(applicationRole.applicationId, applicationRecord.id));
+
+        // Remove existing roles
+        for (const existingRole of existingRoles) {
+          await ctx.db
+            .delete(applicationRole)
+            .where(eq(applicationRole.id, existingRole.id));
+        }
+
+        // Add new role
+        await ctx.db.insert(applicationRole).values({
+          applicationId: applicationRecord.id,
+          roleId: input.roleId,
+        });
+      }
+
+      // Handle languages if provided
+      if (input.languages && input.languages.length > 0) {
+        const existingLanguages = await ctx.db
+          .select()
+          .from(applicationLanguage)
+          .where(eq(applicationLanguage.applicationId, applicationRecord.id));
+
+        for (const existingLang of existingLanguages) {
+          await ctx.db
+            .delete(applicationLanguage)
+            .where(eq(applicationLanguage.id, existingLang.id));
+        }
+
+        for (const lang of input.languages) {
+          await ctx.db.insert(applicationLanguage).values({
+            applicationId: applicationRecord.id,
+            language: lang.language,
+            level: lang.level,
+          });
+        }
+      }
+
+      // Handle skills if provided
+      if (input.skills && input.skills.length > 0) {
+        const existingSkills = await ctx.db
+          .select()
+          .from(applicationSkill)
+          .where(eq(applicationSkill.applicationId, applicationRecord.id));
+
+        const skillsToDelete = existingSkills.filter(
+          (es) => !input.skills!.some((s) => s.id === es.id),
+        );
+        for (const skillToDelete of skillsToDelete) {
+          await ctx.db
+            .delete(applicationSkill)
+            .where(eq(applicationSkill.id, skillToDelete.id));
+        }
+
+        for (const skillInput of input.skills) {
+          if (skillInput.id) {
+            await ctx.db
+              .update(applicationSkill)
+              .set({
+                skill: skillInput.skill,
+                educationMethod: skillInput.educationMethod,
+                institution: skillInput.institution ?? null,
+                year: skillInput.year ?? null,
+                updatedAt: new Date(),
+              })
+              .where(eq(applicationSkill.id, skillInput.id));
+          } else {
+            await ctx.db.insert(applicationSkill).values({
+              applicationId: applicationRecord.id,
+              skill: skillInput.skill,
+              educationMethod: skillInput.educationMethod,
+              institution: skillInput.institution ?? null,
+              year: skillInput.year ?? null,
+            });
+          }
+        }
+      }
+
+      // Handle experiences if provided
+      if (input.experiences && input.experiences.length > 0) {
+        const existingExperiences = await ctx.db
+          .select()
+          .from(applicationExperience)
+          .where(eq(applicationExperience.applicationId, applicationRecord.id));
+
+        const experiencesToDelete = existingExperiences.filter(
+          (ee) => !input.experiences!.some((e) => e.id === ee.id),
+        );
+        for (const expToDelete of experiencesToDelete) {
+          await ctx.db
+            .delete(applicationExperience)
+            .where(eq(applicationExperience.id, expToDelete.id));
+        }
+
+        for (const expInput of input.experiences) {
+          let experienceId: string;
+          if (expInput.id) {
+            experienceId = expInput.id;
+            await ctx.db
+              .update(applicationExperience)
+              .set({
+                company: expInput.company,
+                role: expInput.role,
+                startDate: new Date(expInput.startDate),
+                endDate: expInput.endDate ? new Date(expInput.endDate) : null,
+                description: expInput.description ?? null,
+                achievements: expInput.achievements ?? null,
+                isCurrent: expInput.isCurrent,
+                order: expInput.order,
+                updatedAt: new Date(),
+              })
+              .where(eq(applicationExperience.id, experienceId));
+          } else {
+            const newExp = await ctx.db
+              .insert(applicationExperience)
+              .values({
+                applicationId: applicationRecord.id,
+                company: expInput.company,
+                role: expInput.role,
+                startDate: new Date(expInput.startDate),
+                endDate: expInput.endDate ? new Date(expInput.endDate) : null,
+                description: expInput.description ?? null,
+                achievements: expInput.achievements ?? null,
+                isCurrent: expInput.isCurrent,
+                order: expInput.order,
+              })
+              .returning()
+              .then((exps) => exps[0]);
+
+            if (!newExp) {
+              throw new TRPCError({
+                code: "INTERNAL_SERVER_ERROR",
+                message: "Failed to create experience",
+              });
+            }
+            experienceId = newExp.id;
+          }
+
+          // Handle linked skills
+          if (expInput.linkedSkillIds) {
+            await ctx.db
+              .delete(experienceSkill)
+              .where(eq(experienceSkill.experienceId, experienceId));
+
+            for (const skillId of expInput.linkedSkillIds) {
+              await ctx.db.insert(experienceSkill).values({
+                experienceId,
+                skillId,
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        userId: userRecord.id,
+        applicationId: applicationRecord.id,
+      };
+    }),
+
+  sendOTPForExistingApplication: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // Verify application exists
+      const userRecord = await ctx.db
+        .select()
+        .from(user)
+        .where(eq(user.email, input.email))
+        .limit(1)
+        .then((users) => users[0]);
+
+      if (!userRecord) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      const applicationRecord = await ctx.db
+        .select()
+        .from(application)
+        .where(eq(application.userId, userRecord.id))
+        .limit(1)
+        .then((applications) => applications[0]);
+
+      if (!applicationRecord) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Application not found",
+        });
+      }
+
+      // Send OTP for sign-in using better-auth
+      try {
+        const result = await auth.api.sendVerificationOTP({
+          body: {
+            email: input.email,
+            type: "sign-in",
+          },
+        });
+
+        if (result && typeof result === "object" && "error" in result) {
+          const errorResult = result as { error?: { message?: string } };
+          if (errorResult.error) {
+            throw new TRPCError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: errorResult.error.message || "Failed to send OTP",
+            });
+          }
+        }
+
+        return { success: true };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        console.error("Failed to send OTP:", error);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Failed to send OTP",
+        });
+      }
+    }),
+
+  verifyOTPAndLogin: publicProcedure
+    .input(
+      z.object({
+        email: z.string().email(),
+        otp: z.string(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      try {
+        // Verify OTP with better-auth
+        // This will create a session automatically if OTP is correct
+        const verifyResult = await auth.api.verifyEmailOTP({
+          body: {
+            email: input.email,
+            otp: input.otp,
+          },
+        });
+
+        // Check if verification failed
+        if (
+          !verifyResult ||
+          (typeof verifyResult === "object" &&
+            "error" in verifyResult &&
+            (verifyResult as { error?: unknown }).error)
+        ) {
+          const errorObj = verifyResult as { error?: { message?: string } };
+          const errorMessage =
+            errorObj.error && typeof errorObj.error === "object"
+              ? errorObj.error.message || "Invalid OTP"
+              : "Invalid OTP";
+
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: errorMessage,
+          });
+        }
+
+        // Get user to return userId
+        const userRecord = await ctx.db
+          .select()
+          .from(user)
+          .where(eq(user.email, input.email))
+          .limit(1)
+          .then((users) => users[0]);
+
+        if (!userRecord) {
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "User not found",
+          });
+        }
+
+        // Session is automatically created by better-auth via cookies
+        return {
+          success: true,
+          userId: userRecord.id,
+        };
+      } catch (error) {
+        if (error instanceof TRPCError) {
+          throw error;
+        }
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to verify OTP",
+        });
+      }
     }),
 });

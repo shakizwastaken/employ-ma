@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
 import {
@@ -36,8 +36,10 @@ import {
   PreviousExperienceForm,
   type PreviousExperience,
 } from "@/components/previous-experience-form";
+import { OtpVerification } from "@/components/otp-verification";
 import { authClient } from "@/server/better-auth/client";
 import { cn } from "@/lib/utils";
+import { env } from "@/env";
 
 type StepType =
   | "personal"
@@ -80,8 +82,24 @@ export function ApplicationForm() {
   const [pathAnswers, setPathAnswers] = useState<Record<string, string>>({});
   const [applicationId, setApplicationId] = useState<string | null>(null);
 
-  // Development mode - use NEXT_PUBLIC env variable (accessible in client)
-  const isDev = process.env.NEXT_PUBLIC_NODE_ENV === "development";
+  // Auto-save and user state
+  const [previousEmail, setPreviousEmail] = useState<string>("");
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  const [userState, setUserState] = useState<{
+    exists: boolean;
+    hasAccount: boolean;
+    emailVerified: boolean;
+    applicationId?: string;
+    userId?: string;
+  } | null>(null);
+  const [showOtpInput, setShowOtpInput] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPrefilled, setIsPrefilled] = useState(false);
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedDataRef = useRef<string>("");
+
+  // Development mode
+  const isDev = env.NEXT_PUBLIC_NODE_ENV === "development";
 
   // Queries
   const { data: roles } = api.applicant.getRoles.useQuery();
@@ -89,6 +107,55 @@ export function ApplicationForm() {
     { roleId: selectedRoleId },
     { enabled: !!selectedRoleId },
   );
+
+  // Mutations for auto-save and user checking
+  const checkUserByEmail = api.applicant.checkUserByEmail.useQuery(
+    { email },
+    {
+      enabled: false, // Manual trigger only
+      retry: false,
+    },
+  );
+
+  const savePartialApplication =
+    api.applicant.savePartialApplication.useMutation({
+      onSuccess: (data) => {
+        if (data.applicationId) {
+          setApplicationId(data.applicationId);
+        }
+        setIsSaving(false);
+      },
+      onError: () => {
+        setIsSaving(false);
+      },
+    });
+
+  const getPartialApplication = api.applicant.getPartialApplication.useQuery(
+    { email },
+    {
+      enabled: false, // Manual trigger only
+      retry: false,
+    },
+  );
+
+  const sendOTP = api.applicant.sendOTPForExistingApplication.useMutation({
+    onSuccess: () => {
+      setShowOtpInput(true);
+    },
+    onError: (error) => {
+      setError(error.message || "Failed to send OTP");
+    },
+  });
+
+  const verifyOTP = api.applicant.verifyOTPAndLogin.useMutation({
+    onSuccess: () => {
+      router.push("/app");
+      router.refresh();
+    },
+    onError: (error) => {
+      setError(error.message || "Invalid OTP");
+    },
+  });
 
   // Group path questions into steps of 4
   const pathQuestionSteps = useMemo(() => {
@@ -124,9 +191,275 @@ export function ApplicationForm() {
 
   const currentStep = steps[currentStepIndex];
 
+  // Check user when email is entered or changed
+  useEffect(() => {
+    if (!email || email === previousEmail) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return; // Basic email validation
+
+    const checkEmail = async () => {
+      setIsCheckingEmail(true);
+      try {
+        const result = await checkUserByEmail.refetch();
+        if (result.data) {
+          setUserState(result.data);
+          setPreviousEmail(email);
+
+          // If user exists with verified email and has account, navigate to login on second step
+          if (
+            result.data.exists &&
+            result.data.emailVerified &&
+            result.data.hasAccount &&
+            currentStepIndex >= 1
+          ) {
+            router.push("/login");
+            return;
+          }
+
+          // If user exists with verified email but no account, show OTP on second step
+          if (
+            result.data.exists &&
+            result.data.emailVerified &&
+            !result.data.hasAccount &&
+            currentStepIndex >= 1
+          ) {
+            sendOTP.mutate({ email });
+            return;
+          }
+
+          // If user exists but not verified, pre-fill form
+          if (result.data.exists && !result.data.emailVerified) {
+            try {
+              const partialData = await getPartialApplication.refetch();
+              if (partialData.data) {
+                prefillForm(partialData.data);
+                setIsPrefilled(true);
+              }
+            } catch (err) {
+              console.error("Failed to fetch partial application:", err);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check user:", err);
+      } finally {
+        setIsCheckingEmail(false);
+      }
+    };
+
+    checkEmail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [email, currentStepIndex]);
+
+  // Pre-fill form with existing data
+  const prefillForm = useCallback(
+    (data: NonNullable<typeof getPartialApplication.data>) => {
+      if (data.user.name) setFullName(data.user.name);
+      if (data.user.phone) setPhone(data.user.phone);
+      if (data.application.city) setCity(data.application.city);
+      if (data.application.currentJobStatus)
+        setCurrentJobStatus(data.application.currentJobStatus);
+      if (data.application.yearsOfExperience)
+        setYearsOfExperience(data.application.yearsOfExperience.toString());
+      if (data.application.highestEducationLevel)
+        setHighestEducationLevel(data.application.highestEducationLevel);
+      if (data.application.availability)
+        setAvailability(
+          data.application.availability as "full-time" | "part-time",
+        );
+      if (data.roles && data.roles.length > 0) {
+        setSelectedRoleId(data.roles[0]!.id);
+      }
+      if (data.languages && data.languages.length > 0) {
+        setLanguages(
+          data.languages.map((l) => ({
+            language: l.language,
+            level: l.level,
+          })),
+        );
+      }
+      if (data.skills && data.skills.length > 0) {
+        setSkills(
+          data.skills.map((s) => ({
+            id: s.id,
+            skill: s.skill,
+            educationMethod: s.educationMethod as EducationMethod,
+            institution: s.institution ?? undefined,
+            year: s.year ?? undefined,
+          })),
+        );
+      }
+      if (data.experiences && data.experiences.length > 0) {
+        setExperiences(
+          data.experiences.map((e) => ({
+            id: e.id,
+            company: e.company,
+            role: e.role,
+            startDate: e.startDate,
+            endDate: e.endDate,
+            description: e.description ?? undefined,
+            achievements: e.achievements ?? undefined,
+            isCurrent: e.isCurrent,
+            order: e.order,
+            linkedSkillIds: e.linkedSkillIds,
+          })),
+        );
+      }
+      if (data.pathAnswers && data.pathAnswers.length > 0) {
+        const answers: Record<string, string> = {};
+        data.pathAnswers.forEach((pa) => {
+          if (pa.questionId) {
+            answers[pa.questionId] = pa.answer;
+          }
+        });
+        setPathAnswers(answers);
+      }
+      if (data.application.id) {
+        setApplicationId(data.application.id);
+      }
+    },
+    [],
+  );
+
+  // Auto-save function
+  const performAutoSave = useCallback(async () => {
+    if (!email || isSaving) return;
+    if (!fullName && !phone && !city) return; // Don't save if no data yet
+
+    const currentData = JSON.stringify({
+      email,
+      fullName,
+      phone,
+      city,
+      currentJobStatus,
+      yearsOfExperience,
+      highestEducationLevel,
+      availability,
+      roleId: selectedRoleId,
+      languages,
+      skills,
+      experiences,
+    });
+
+    // Only save if data has changed
+    if (currentData === lastSavedDataRef.current) return;
+
+    setIsSaving(true);
+    lastSavedDataRef.current = currentData;
+
+    try {
+      await savePartialApplication.mutateAsync({
+        email,
+        fullName: fullName || undefined,
+        phone: phone || undefined,
+        city: city || undefined,
+        currentJobStatus: currentJobStatus || undefined,
+        yearsOfExperience: yearsOfExperience
+          ? parseInt(yearsOfExperience)
+          : undefined,
+        highestEducationLevel: highestEducationLevel || undefined,
+        availability: availability || undefined,
+        roleId: selectedRoleId || undefined,
+        languages:
+          languages.filter((l) => l.language && l.level).length > 0
+            ? languages.filter((l) => l.language && l.level)
+            : undefined,
+        skills:
+          skills.length > 0
+            ? skills.map((s) => ({
+                id: s.id,
+                skill: s.skill,
+                educationMethod: s.educationMethod,
+                institution: s.institution,
+                year: s.year,
+              }))
+            : undefined,
+        experiences:
+          experiences.length > 0
+            ? experiences.map((e) => ({
+                id: e.id,
+                company: e.company,
+                role: e.role,
+                startDate: e.startDate,
+                endDate: e.endDate,
+                description: e.description,
+                achievements: e.achievements,
+                isCurrent: e.isCurrent,
+                order: e.order,
+                linkedSkillIds: e.linkedSkillIds,
+              }))
+            : undefined,
+      });
+    } catch (err) {
+      console.error("Auto-save failed:", err);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [
+    email,
+    fullName,
+    phone,
+    city,
+    currentJobStatus,
+    yearsOfExperience,
+    highestEducationLevel,
+    availability,
+    selectedRoleId,
+    languages,
+    skills,
+    experiences,
+    isSaving,
+    savePartialApplication,
+  ]);
+
+  // Auto-save with debouncing (8 seconds)
+  useEffect(() => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    // Don't auto-save if email is being checked or form is being pre-filled
+    if (isCheckingEmail || isPrefilled) {
+      return;
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      performAutoSave();
+    }, 8000);
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [
+    email,
+    fullName,
+    phone,
+    city,
+    currentJobStatus,
+    yearsOfExperience,
+    highestEducationLevel,
+    availability,
+    selectedRoleId,
+    languages,
+    skills,
+    experiences,
+    performAutoSave,
+    isCheckingEmail,
+    isPrefilled,
+  ]);
+
+  // Save on step change
+  useEffect(() => {
+    if (currentStepIndex > 0 && !isCheckingEmail && !isPrefilled) {
+      performAutoSave();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentStepIndex]);
+
   // Development mode: Pre-fill form values step by step
   useEffect(() => {
-    if (!isDev) return;
+    if (!isDev || isPrefilled) return;
 
     const stepId = currentStep?.id;
     if (!stepId) return;
@@ -223,7 +556,7 @@ export function ApplicationForm() {
         break;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentStep?.id, isDev]);
+  }, [currentStep?.id, isDev, isPrefilled]);
   const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   // Mutations
@@ -422,8 +755,23 @@ export function ApplicationForm() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                disabled={
+                  userState?.emailVerified === true ||
+                  isCheckingEmail ||
+                  showOtpInput
+                }
                 className="transition-all duration-150 focus:scale-[1.02]"
               />
+              {isCheckingEmail && (
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Checking email...
+                </p>
+              )}
+              {userState?.emailVerified && (
+                <p className="text-muted-foreground mt-1 text-sm">
+                  Email verified - cannot be changed
+                </p>
+              )}
             </Field>
             <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-100 duration-300">
               <FieldLabel htmlFor="phone">Phone *</FieldLabel>
@@ -704,51 +1052,87 @@ export function ApplicationForm() {
         />
       )}
 
-      {/* Main Form Card */}
-      <Card
-        className={cn(
-          "w-full transition-all duration-300",
-          isTransitioning && "scale-95 opacity-0",
-          !isTransitioning && "scale-100 opacity-100",
-        )}
-      >
-        <CardHeader>
-          <CardTitle>{currentStep.label}</CardTitle>
-          <CardDescription>
-            {currentStep.id === "path-questions"
-              ? `Answer questions for ${questionsData?.role.name || "your selected role"}`
-              : `Please provide the following information`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
-              {renderStepContent()}
-            </div>
+      {/* Auto-save indicator */}
+      {isSaving && (
+        <div className="bg-muted/50 text-muted-foreground animate-in fade-in-0 rounded-md p-2 text-center text-sm">
+          Saving your progress...
+        </div>
+      )}
 
-            <FormStepNavigation
-              onPrevious={goToPreviousStep}
-              canGoPrevious={currentStepIndex > 0}
-              canGoNext={validateCurrentStep()}
-              isSubmitting={
-                submitApplication.isPending || submitPathAnswers.isPending
-              }
-              nextLabel={
-                currentStep.id === "experiences"
-                  ? "Continue to Questions →"
-                  : currentStep.id === "path-questions" &&
-                      getCurrentPathQuestionStep() &&
-                      steps
-                        .slice(0, currentStepIndex)
-                        .filter((s) => s.id === "path-questions").length ===
-                        pathQuestionSteps.length - 1
-                    ? "Submit Application →"
-                    : "Next →"
-              }
+      {/* OTP Verification for existing applications */}
+      {showOtpInput && (
+        <Card className="w-full">
+          <CardHeader>
+            <CardTitle>Verify Your Email</CardTitle>
+            <CardDescription>
+              We found an existing application for this email. Please enter the
+              verification code sent to {email} to continue.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <OtpVerification
+              email={email}
+              type="sign-in"
+              onVerify={async (otp) => {
+                await verifyOTP.mutateAsync({ email, otp });
+              }}
+              onResend={async () => {
+                await sendOTP.mutateAsync({ email });
+              }}
+              isLoading={verifyOTP.isPending}
+              error={error}
             />
-          </form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Main Form Card */}
+      {!showOtpInput && (
+        <Card
+          className={cn(
+            "w-full transition-all duration-300",
+            isTransitioning && "scale-95 opacity-0",
+            !isTransitioning && "scale-100 opacity-100",
+          )}
+        >
+          <CardHeader>
+            <CardTitle>{currentStep.label}</CardTitle>
+            <CardDescription>
+              {currentStep.id === "path-questions"
+                ? `Answer questions for ${questionsData?.role.name || "your selected role"}`
+                : `Please provide the following information`}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
+                {renderStepContent()}
+              </div>
+
+              <FormStepNavigation
+                onPrevious={goToPreviousStep}
+                canGoPrevious={currentStepIndex > 0}
+                canGoNext={validateCurrentStep()}
+                isSubmitting={
+                  submitApplication.isPending || submitPathAnswers.isPending
+                }
+                nextLabel={
+                  currentStep.id === "experiences"
+                    ? "Continue to Questions →"
+                    : currentStep.id === "path-questions" &&
+                        getCurrentPathQuestionStep() &&
+                        steps
+                          .slice(0, currentStepIndex)
+                          .filter((s) => s.id === "path-questions").length ===
+                          pathQuestionSteps.length - 1
+                      ? "Submit Application →"
+                      : "Next →"
+                }
+              />
+            </form>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

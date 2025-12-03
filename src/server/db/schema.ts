@@ -3,7 +3,6 @@ import {
   boolean,
   integer,
   pgTable,
-  pgTableCreator,
   text,
   timestamp,
   unique,
@@ -11,17 +10,14 @@ import {
 } from "drizzle-orm/pg-core";
 import { randomUUID } from "crypto";
 
-const createdAt = timestamp("created_at")
-  .$defaultFn(() => /*@__PURE__*/ new Date())
-  .notNull();
+const createdAt = timestamp("created_at").defaultNow().notNull();
 const updatedAt = timestamp("updated_at")
+  .defaultNow()
   .$onUpdate(() => /*@__PURE__*/ new Date())
   .notNull();
 
 export const user = pgTable("user", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
 
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
@@ -36,9 +32,7 @@ export const user = pgTable("user", {
 });
 
 export const session = pgTable("session", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
 
   expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
@@ -54,9 +48,7 @@ export const session = pgTable("session", {
 });
 
 export const account = pgTable("account", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
 
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
@@ -76,9 +68,7 @@ export const account = pgTable("account", {
 });
 
 export const verification = pgTable("verification", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
 
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
@@ -97,9 +87,7 @@ export const sessionRelations = relations(session, ({ one }) => ({
 }));
 
 export const organization = pgTable("organization", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   logo: text("logo"),
@@ -110,9 +98,7 @@ export const organization = pgTable("organization", {
 });
 
 export const member = pgTable("member", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -126,9 +112,7 @@ export const member = pgTable("member", {
 });
 
 export const invitation = pgTable("invitation", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull(),
   inviterId: uuid("inviter_id")
     .notNull()
@@ -175,9 +159,7 @@ export const userRelations = relations(user, ({ many, one }) => ({
 
 // Application tables (renamed from applicant)
 export const application = pgTable("application", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -193,9 +175,7 @@ export const application = pgTable("application", {
 });
 
 export const role = pgTable("role", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
@@ -229,9 +209,7 @@ export const applicationRole = pgTable(
 );
 
 export const questionTemplate = pgTable("question_template", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   roleId: uuid("role_id")
     .notNull()
     .references(() => role.id, { onDelete: "cascade" }),
@@ -275,9 +253,7 @@ export const pathAnswer = pgTable(
 );
 
 export const applicationLanguage = pgTable("application_language", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
     .notNull()
     .references(() => application.id, { onDelete: "cascade" }),
@@ -289,9 +265,7 @@ export const applicationLanguage = pgTable("application_language", {
 });
 
 export const applicationSkill = pgTable("application_skill", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
     .notNull()
     .references(() => application.id, { onDelete: "cascade" }),
@@ -305,9 +279,7 @@ export const applicationSkill = pgTable("application_skill", {
 });
 
 export const applicationExperience = pgTable("application_experience", {
-  id: uuid("id")
-    .primaryKey()
-    .$defaultFn(() => randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   applicationId: uuid("application_id")
     .notNull()
     .references(() => application.id, { onDelete: "cascade" }),
