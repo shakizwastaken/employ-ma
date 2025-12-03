@@ -80,6 +80,7 @@ export function ApplicationForm() {
   const [skills, setSkills] = useState<Skill[]>([]);
   const [experiences, setExperiences] = useState<PreviousExperience[]>([]);
   const [pathAnswers, setPathAnswers] = useState<Record<string, string>>({});
+  const [applicationId, setApplicationId] = useState<string | null>(null);
 
   // Queries
   const { data: roles } = api.applicant.getRoles.useQuery();
@@ -128,7 +129,10 @@ export function ApplicationForm() {
 
   // Mutations
   const submitApplication = api.applicant.submitApplication.useMutation({
-    onSuccess: () => {
+    onSuccess: (data) => {
+      if (data.applicationId) {
+        setApplicationId(data.applicationId);
+      }
       setCompletedSteps(new Set([...completedSteps, currentStepIndex]));
       setShowSuccess(true);
       setTimeout(() => {
@@ -285,9 +289,9 @@ export function ApplicationForm() {
             answer: pathAnswers[q.id]!,
           }));
 
-        if (allAnswers.length > 0) {
+        if (allAnswers.length > 0 && applicationId) {
           submitPathAnswers.mutate({
-            applicantEmail: email,
+            applicationId,
             answers: allAnswers,
           });
         } else {

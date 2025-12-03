@@ -9,6 +9,7 @@ import {
   unique,
   uuid,
 } from "drizzle-orm/pg-core";
+import { randomUUID } from "crypto";
 
 const createdAt = timestamp("created_at")
   .$defaultFn(() => /*@__PURE__*/ new Date())
@@ -18,10 +19,13 @@ const updatedAt = timestamp("updated_at")
   .notNull();
 
 export const user = pgTable("user", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
 
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  phone: text("phone"), // Added phone field
   emailVerified: boolean("email_verified")
     .$defaultFn(() => false)
     .notNull(),
@@ -32,27 +36,31 @@ export const user = pgTable("user", {
 });
 
 export const session = pgTable("session", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
 
   expiresAt: timestamp("expires_at").notNull(),
   token: text("token").notNull().unique(),
   ipAddress: text("ip_address"),
   userAgent: text("user_agent"),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  activeOrganizationId: text("active_organization_id"),
+  activeOrganizationId: uuid("active_organization_id"),
 
   createdAt,
   updatedAt,
 });
 
 export const account = pgTable("account", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
 
   accountId: text("account_id").notNull(),
   providerId: text("provider_id").notNull(),
-  userId: text("user_id")
+  userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   accessToken: text("access_token"),
@@ -68,7 +76,9 @@ export const account = pgTable("account", {
 });
 
 export const verification = pgTable("verification", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
 
   identifier: text("identifier").notNull(),
   value: text("value").notNull(),
@@ -87,7 +97,9 @@ export const sessionRelations = relations(session, ({ one }) => ({
 }));
 
 export const organization = pgTable("organization", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   logo: text("logo"),
@@ -98,11 +110,13 @@ export const organization = pgTable("organization", {
 });
 
 export const member = pgTable("member", {
-  id: text("id").primaryKey(),
-  userId: text("user_id")
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: uuid("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  organizationId: text("organization_id")
+  organizationId: uuid("organization_id")
     .notNull()
     .references(() => organization.id, { onDelete: "cascade" }),
   role: text("role").notNull(),
@@ -112,12 +126,14 @@ export const member = pgTable("member", {
 });
 
 export const invitation = pgTable("invitation", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   email: text("email").notNull(),
-  inviterId: text("inviter_id")
+  inviterId: uuid("inviter_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-  organizationId: text("organization_id")
+  organizationId: uuid("organization_id")
     .notNull()
     .references(() => organization.id, { onDelete: "cascade" }),
   role: text("role").notNull(),
@@ -149,36 +165,37 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
   }),
 }));
 
-export const userRelations = relations(user, ({ many }) => ({
+export const userRelations = relations(user, ({ many, one }) => ({
   account: many(account),
   session: many(session),
   members: many(member),
   invitations: many(invitation),
+  applications: many(application),
 }));
 
-// Applicant tables
-export const applicant = pgTable("applicant", {
-  id: text("id").primaryKey(),
+// Application tables (renamed from applicant)
+export const application = pgTable("application", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
   fullName: text("full_name").notNull(),
-  email: text("email").notNull().unique(),
-  phone: text("phone").notNull(),
   city: text("city").notNull(),
   currentJobStatus: text("current_job_status").notNull(),
   yearsOfExperience: integer("years_of_experience").notNull(),
   highestEducationLevel: text("highest_education_level").notNull(),
-  skills: text("skills"),
   availability: text("availability").notNull(), // "full-time" or "part-time"
-  emailVerified: boolean("email_verified")
-    .$defaultFn(() => false)
-    .notNull(),
-  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
 
   createdAt,
   updatedAt,
 });
 
 export const role = pgTable("role", {
-  id: text("id").primaryKey(),
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
   name: text("name").notNull().unique(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
@@ -190,14 +207,16 @@ export const role = pgTable("role", {
   updatedAt,
 });
 
-export const applicantRole = pgTable(
-  "applicant_role",
+export const applicationRole = pgTable(
+  "application_role",
   {
-    id: text("id").primaryKey(),
-    applicantId: text("applicant_id")
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    applicationId: uuid("application_id")
       .notNull()
-      .references(() => applicant.id, { onDelete: "cascade" }),
-    roleId: text("role_id")
+      .references(() => application.id, { onDelete: "cascade" }),
+    roleId: uuid("role_id")
       .notNull()
       .references(() => role.id, { onDelete: "cascade" }),
 
@@ -205,13 +224,15 @@ export const applicantRole = pgTable(
     updatedAt,
   },
   (table) => ({
-    uniqueApplicantRole: unique().on(table.applicantId, table.roleId),
+    uniqueApplicationRole: unique().on(table.applicationId, table.roleId),
   }),
 );
 
 export const questionTemplate = pgTable("question_template", {
-  id: text("id").primaryKey(),
-  roleId: text("role_id")
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  roleId: uuid("role_id")
     .notNull()
     .references(() => role.id, { onDelete: "cascade" }),
   questionText: text("question_text").notNull(),
@@ -230,29 +251,36 @@ export const questionTemplate = pgTable("question_template", {
 export const pathAnswer = pgTable(
   "path_answer",
   {
-    id: text("id").primaryKey(),
-    applicantId: text("applicant_id")
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    applicationId: uuid("application_id")
       .notNull()
-      .references(() => applicant.id, { onDelete: "cascade" }),
-    templateId: text("template_id")
+      .references(() => application.id, { onDelete: "cascade" }),
+    templateId: uuid("template_id")
       .notNull()
       .references(() => questionTemplate.id, { onDelete: "cascade" }),
-    questionId: text("question_id").notNull(), // denormalized for easier querying
+    questionId: uuid("question_id").notNull(), // denormalized for easier querying
     answer: text("answer").notNull(), // can be JSON for complex answers
 
     createdAt,
     updatedAt,
   },
   (table) => ({
-    uniqueApplicantTemplate: unique().on(table.applicantId, table.templateId),
+    uniqueApplicationTemplate: unique().on(
+      table.applicationId,
+      table.templateId,
+    ),
   }),
 );
 
-export const applicantLanguage = pgTable("applicant_language", {
-  id: text("id").primaryKey(),
-  applicantId: text("applicant_id")
+export const applicationLanguage = pgTable("application_language", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  applicationId: uuid("application_id")
     .notNull()
-    .references(() => applicant.id, { onDelete: "cascade" }),
+    .references(() => application.id, { onDelete: "cascade" }),
   language: text("language").notNull(),
   level: text("level").notNull(), // "native", "fluent", "intermediate", "basic"
 
@@ -260,11 +288,13 @@ export const applicantLanguage = pgTable("applicant_language", {
   updatedAt,
 });
 
-export const applicantSkill = pgTable("applicant_skill", {
-  id: text("id").primaryKey(),
-  applicantId: text("applicant_id")
+export const applicationSkill = pgTable("application_skill", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  applicationId: uuid("application_id")
     .notNull()
-    .references(() => applicant.id, { onDelete: "cascade" }),
+    .references(() => application.id, { onDelete: "cascade" }),
   skill: text("skill").notNull(),
   educationMethod: text("education_method").notNull(), // "self-taught", "high-school", "associate", "bachelor", "master", "phd", "bootcamp", "online-course", "certification", "work-experience"
   institution: text("institution"), // school/bootcamp/course name if applicable
@@ -274,11 +304,13 @@ export const applicantSkill = pgTable("applicant_skill", {
   updatedAt,
 });
 
-export const previousExperience = pgTable("previous_experience", {
-  id: text("id").primaryKey(),
-  applicantId: text("applicant_id")
+export const applicationExperience = pgTable("application_experience", {
+  id: uuid("id")
+    .primaryKey()
+    .$defaultFn(() => randomUUID()),
+  applicationId: uuid("application_id")
     .notNull()
-    .references(() => applicant.id, { onDelete: "cascade" }),
+    .references(() => application.id, { onDelete: "cascade" }),
   company: text("company").notNull(),
   role: text("role").notNull(),
   startDate: timestamp("start_date").notNull(),
@@ -297,13 +329,15 @@ export const previousExperience = pgTable("previous_experience", {
 export const experienceSkill = pgTable(
   "experience_skill",
   {
-    id: text("id").primaryKey(),
-    experienceId: text("experience_id")
+    id: uuid("id")
+      .primaryKey()
+      .$defaultFn(() => randomUUID()),
+    experienceId: uuid("experience_id")
       .notNull()
-      .references(() => previousExperience.id, { onDelete: "cascade" }),
-    skillId: text("skill_id")
+      .references(() => applicationExperience.id, { onDelete: "cascade" }),
+    skillId: uuid("skill_id")
       .notNull()
-      .references(() => applicantSkill.id, { onDelete: "cascade" }),
+      .references(() => applicationSkill.id, { onDelete: "cascade" }),
 
     createdAt,
     updatedAt,
@@ -313,31 +347,34 @@ export const experienceSkill = pgTable(
   }),
 );
 
-// Applicant relations
-export const applicantRelations = relations(applicant, ({ many, one }) => ({
-  roles: many(applicantRole),
+// Application relations
+export const applicationRelations = relations(application, ({ many, one }) => ({
+  roles: many(applicationRole),
   pathAnswers: many(pathAnswer),
-  languages: many(applicantLanguage),
-  skills: many(applicantSkill),
-  experiences: many(previousExperience),
-  user: one(user, { fields: [applicant.userId], references: [user.id] }),
+  languages: many(applicationLanguage),
+  skills: many(applicationSkill),
+  experiences: many(applicationExperience),
+  user: one(user, { fields: [application.userId], references: [user.id] }),
 }));
 
 export const roleRelations = relations(role, ({ many }) => ({
-  applicants: many(applicantRole),
+  applications: many(applicationRole),
   questionTemplates: many(questionTemplate),
 }));
 
-export const applicantRoleRelations = relations(applicantRole, ({ one }) => ({
-  applicant: one(applicant, {
-    fields: [applicantRole.applicantId],
-    references: [applicant.id],
+export const applicationRoleRelations = relations(
+  applicationRole,
+  ({ one }) => ({
+    application: one(application, {
+      fields: [applicationRole.applicationId],
+      references: [application.id],
+    }),
+    role: one(role, {
+      fields: [applicationRole.roleId],
+      references: [role.id],
+    }),
   }),
-  role: one(role, {
-    fields: [applicantRole.roleId],
-    references: [role.id],
-  }),
-}));
+);
 
 export const questionTemplateRelations = relations(
   questionTemplate,
@@ -351,9 +388,9 @@ export const questionTemplateRelations = relations(
 );
 
 export const pathAnswerRelations = relations(pathAnswer, ({ one }) => ({
-  applicant: one(applicant, {
-    fields: [pathAnswer.applicantId],
-    references: [applicant.id],
+  application: one(application, {
+    fields: [pathAnswer.applicationId],
+    references: [application.id],
   }),
   template: one(questionTemplate, {
     fields: [pathAnswer.templateId],
@@ -361,33 +398,33 @@ export const pathAnswerRelations = relations(pathAnswer, ({ one }) => ({
   }),
 }));
 
-export const applicantLanguageRelations = relations(
-  applicantLanguage,
+export const applicationLanguageRelations = relations(
+  applicationLanguage,
   ({ one }) => ({
-    applicant: one(applicant, {
-      fields: [applicantLanguage.applicantId],
-      references: [applicant.id],
+    application: one(application, {
+      fields: [applicationLanguage.applicationId],
+      references: [application.id],
     }),
   }),
 );
 
-export const applicantSkillRelations = relations(
-  applicantSkill,
+export const applicationSkillRelations = relations(
+  applicationSkill,
   ({ one, many }) => ({
-    applicant: one(applicant, {
-      fields: [applicantSkill.applicantId],
-      references: [applicant.id],
+    application: one(application, {
+      fields: [applicationSkill.applicationId],
+      references: [application.id],
     }),
     experienceSkills: many(experienceSkill),
   }),
 );
 
-export const previousExperienceRelations = relations(
-  previousExperience,
+export const applicationExperienceRelations = relations(
+  applicationExperience,
   ({ one, many }) => ({
-    applicant: one(applicant, {
-      fields: [previousExperience.applicantId],
-      references: [applicant.id],
+    application: one(application, {
+      fields: [applicationExperience.applicationId],
+      references: [application.id],
     }),
     experienceSkills: many(experienceSkill),
   }),
@@ -396,13 +433,13 @@ export const previousExperienceRelations = relations(
 export const experienceSkillRelations = relations(
   experienceSkill,
   ({ one }) => ({
-    experience: one(previousExperience, {
+    experience: one(applicationExperience, {
       fields: [experienceSkill.experienceId],
-      references: [previousExperience.id],
+      references: [applicationExperience.id],
     }),
-    skill: one(applicantSkill, {
+    skill: one(applicationSkill, {
       fields: [experienceSkill.skillId],
-      references: [applicantSkill.id],
+      references: [applicationSkill.id],
     }),
   }),
 );

@@ -44,7 +44,7 @@ export default function ApplicantDashboardPage() {
     );
   }
 
-  const { applicant, roles, languages, pathAnswers } = data;
+  const { application, user, roles, languages, skills, experiences, pathAnswers } = data;
 
   return (
     <div className="container mx-auto py-8 max-w-4xl">
@@ -63,51 +63,66 @@ export default function ApplicantDashboardPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field>
                     <FieldLabel>Full Name</FieldLabel>
-                    <p className="text-sm">{applicant.fullName}</p>
+                    <p className="text-sm">{application.fullName}</p>
                   </Field>
-                  <Field>
-                    <FieldLabel>Email</FieldLabel>
-                    <p className="text-sm">{applicant.email}</p>
-                    {applicant.emailVerified && (
-                      <span className="text-xs text-green-600">✓ Verified</span>
-                    )}
-                  </Field>
-                  <Field>
-                    <FieldLabel>Phone</FieldLabel>
-                    <p className="text-sm">{applicant.phone}</p>
-                  </Field>
+                  {user && (
+                    <>
+                      <Field>
+                        <FieldLabel>Email</FieldLabel>
+                        <p className="text-sm">{user.email}</p>
+                        {user.emailVerified && (
+                          <span className="text-xs text-green-600">✓ Verified</span>
+                        )}
+                      </Field>
+                      {user.phone && (
+                        <Field>
+                          <FieldLabel>Phone</FieldLabel>
+                          <p className="text-sm">{user.phone}</p>
+                        </Field>
+                      )}
+                    </>
+                  )}
                   <Field>
                     <FieldLabel>City</FieldLabel>
-                    <p className="text-sm">{applicant.city}</p>
+                    <p className="text-sm">{application.city}</p>
                   </Field>
                   <Field>
                     <FieldLabel>Current Job Status</FieldLabel>
                     <p className="text-sm capitalize">
-                      {applicant.currentJobStatus}
+                      {application.currentJobStatus}
                     </p>
                   </Field>
                   <Field>
                     <FieldLabel>Years of Experience</FieldLabel>
-                    <p className="text-sm">{applicant.yearsOfExperience}</p>
+                    <p className="text-sm">{application.yearsOfExperience}</p>
                   </Field>
                   <Field>
                     <FieldLabel>Highest Education Level</FieldLabel>
                     <p className="text-sm capitalize">
-                      {applicant.highestEducationLevel.replace("-", " ")}
+                      {application.highestEducationLevel.replace("-", " ")}
                     </p>
                   </Field>
                   <Field>
                     <FieldLabel>Availability</FieldLabel>
                     <p className="text-sm capitalize">
-                      {applicant.availability === "full-time"
+                      {application.availability === "full-time"
                         ? "Full-time (80+ hours/week)"
                         : "Part-time (40+ hours/week)"}
                     </p>
                   </Field>
-                  {applicant.skills && (
+                  {skills && skills.length > 0 && (
                     <Field className="md:col-span-2">
                       <FieldLabel>Skills</FieldLabel>
-                      <p className="text-sm">{applicant.skills}</p>
+                      <div className="space-y-2">
+                        {skills.map((skill) => (
+                          <div key={skill.id} className="flex gap-2">
+                            <span className="font-medium">{skill.skill}</span>
+                            <span className="text-muted-foreground text-sm">
+                              ({skill.educationMethod})
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </Field>
                   )}
                 </div>
@@ -148,6 +163,45 @@ export default function ApplicantDashboardPage() {
                           {role.description && (
                             <p className="text-sm text-muted-foreground">
                               {role.description}
+                            </p>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {experiences && experiences.length > 0 && (
+                <>
+                  <Separator />
+                  <div>
+                    <h3 className="text-lg font-semibold mb-4">
+                      Previous Experiences
+                    </h3>
+                    <div className="space-y-4">
+                      {experiences.map((exp) => (
+                        <div key={exp.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <p className="font-medium">{exp.role}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {exp.company}
+                              </p>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {new Date(exp.startDate).toLocaleDateString()} -{" "}
+                              {exp.endDate
+                                ? new Date(exp.endDate).toLocaleDateString()
+                                : "Present"}
+                            </p>
+                          </div>
+                          {exp.description && (
+                            <p className="text-sm mt-2">{exp.description}</p>
+                          )}
+                          {exp.achievements && (
+                            <p className="text-sm mt-2 text-muted-foreground">
+                              {exp.achievements}
                             </p>
                           )}
                         </div>
