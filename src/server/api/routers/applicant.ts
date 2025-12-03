@@ -15,6 +15,9 @@ import {
   questionTemplate,
   pathAnswer,
   applicantLanguage,
+  applicantSkill,
+  previousExperience,
+  experienceSkill,
 } from "@/server/db/schema";
 import { auth } from "@/server/better-auth";
 
@@ -90,7 +93,6 @@ export const applicantRouter = createTRPCRouter({
         currentJobStatus: z.string().min(1),
         yearsOfExperience: z.number().int().min(0),
         highestEducationLevel: z.string().min(1),
-        skills: z.string().optional(),
         availability: z.enum(["full-time", "part-time"]),
         roleId: z.string(),
         languages: z
@@ -100,6 +102,43 @@ export const applicantRouter = createTRPCRouter({
               level: z.string().min(1),
             }),
           )
+          .optional(),
+        skills: z
+          .array(
+            z.object({
+              skill: z.string().min(1),
+              educationMethod: z.enum([
+                "self-taught",
+                "high-school",
+                "associate",
+                "bachelor",
+                "master",
+                "phd",
+                "bootcamp",
+                "online-course",
+                "certification",
+                "work-experience",
+              ]),
+              institution: z.string().optional(),
+              year: z.number().int().optional(),
+            }),
+          )
+          .optional(),
+        experiences: z
+          .array(
+            z.object({
+              company: z.string().min(1),
+              role: z.string().min(1),
+              startDate: z.string(), // ISO date string
+              endDate: z.string().optional(), // ISO date string
+              description: z.string().optional(),
+              achievements: z.string().optional(),
+              isCurrent: z.boolean(),
+              order: z.number().int(),
+              linkedSkillIds: z.array(z.string()).optional(),
+            }),
+          )
+          .max(15)
           .optional(),
       }),
     )
@@ -124,7 +163,6 @@ export const applicantRouter = createTRPCRouter({
             currentJobStatus: input.currentJobStatus,
             yearsOfExperience: input.yearsOfExperience,
             highestEducationLevel: input.highestEducationLevel,
-            skills: input.skills ?? null,
             availability: input.availability,
             updatedAt: new Date(),
           })
@@ -141,7 +179,6 @@ export const applicantRouter = createTRPCRouter({
           currentJobStatus: input.currentJobStatus,
           yearsOfExperience: input.yearsOfExperience,
           highestEducationLevel: input.highestEducationLevel,
-          skills: input.skills ?? null,
           availability: input.availability,
           emailVerified: false,
         });
@@ -188,6 +225,133 @@ export const applicantRouter = createTRPCRouter({
             applicantId,
             language: lang.language,
             level: lang.level,
+          });
+        }
+      }
+
+      // Handle skills
+      if (input.skills && input.skills.length > 0) {
+        // Remove existing skills
+        const existingSkills = await ctx.db
+          .select()
+          .from(applicantSkill)
+          .where(eq(applicantSkill.applicantId, applicantId));
+
+        for (const existingSkill of existingSkills) {
+          await ctx.db
+            .delete(applicantSkill)
+            .where(eq(applicantSkill.id, existingSkill.id));
+        }
+
+        // Add new skills
+        const skillIds: string[] = [];
+        for (const skill of input.skills) {
+          const skillId = randomUUID();
+          skillIds.push(skillId);
+          await ctx.db.insert(applicantSkill).values({
+            id: skillId,
+            applicantId,
+            skill: skill.skill,
+            educationMethod: skill.educationMethod,
+            institution: skill.institution ?? null,
+            year: skill.year ?? null,
+          });
+        }
+
+        // Handle experiences with skill linking
+        if (input.experiences && input.experiences.length > 0) {
+          // Remove existing experiences
+          const existingExperiences = await ctx.db
+            .select()
+            .from(previousExperience)
+            .where(eq(previousExperience.applicantId, applicantId));
+
+          for (const existingExp of existingExperiences) {
+            // Remove experience-skill links
+            const existingLinks = await ctx.db
+              .select()
+              .from(experienceSkill)
+              .where(eq(experienceSkill.experienceId, existingExp.id));
+
+            for (const link of existingLinks) {
+              await ctx.db
+                .delete(experienceSkill)
+                .where(eq(experienceSkill.id, link.id));
+            }
+
+            // Remove experience
+            await ctx.db
+              .delete(previousExperience)
+              .where(eq(previousExperience.id, existingExp.id));
+          }
+
+          // Add new experiences
+          for (const exp of input.experiences) {
+            const experienceId = randomUUID();
+            await ctx.db.insert(previousExperience).values({
+              id: experienceId,
+              applicantId,
+              company: exp.company,
+              role: exp.role,
+              startDate: new Date(exp.startDate),
+              endDate: exp.endDate ? new Date(exp.endDate) : null,
+              description: exp.description ?? null,
+              achievements: exp.achievements ?? null,
+              isCurrent: exp.isCurrent,
+              order: exp.order,
+            });
+
+            // Link skills to experience if provided
+            if (exp.linkedSkillIds && exp.linkedSkillIds.length > 0) {
+              for (const skillId of exp.linkedSkillIds) {
+                // Verify skill belongs to this applicant
+                if (skillIds.includes(skillId)) {
+                  await ctx.db.insert(experienceSkill).values({
+                    id: randomUUID(),
+                    experienceId,
+                    skillId,
+                  });
+                }
+              }
+            }
+          }
+        }
+      } else if (input.experiences && input.experiences.length > 0) {
+        // Handle experiences without skills (skills might be added later)
+        const existingExperiences = await ctx.db
+          .select()
+          .from(previousExperience)
+          .where(eq(previousExperience.applicantId, applicantId));
+
+        for (const existingExp of existingExperiences) {
+          const existingLinks = await ctx.db
+            .select()
+            .from(experienceSkill)
+            .where(eq(experienceSkill.experienceId, existingExp.id));
+
+          for (const link of existingLinks) {
+            await ctx.db
+              .delete(experienceSkill)
+              .where(eq(experienceSkill.id, link.id));
+          }
+
+          await ctx.db
+            .delete(previousExperience)
+            .where(eq(previousExperience.id, existingExp.id));
+        }
+
+        for (const exp of input.experiences) {
+          await ctx.db.insert(previousExperience).values({
+            id: randomUUID(),
+            applicantId,
+            company: exp.company,
+            role: exp.role,
+            startDate: new Date(exp.startDate),
+            endDate: exp.endDate ? new Date(exp.endDate) : null,
+            description: exp.description ?? null,
+            achievements: exp.achievements ?? null,
+            isCurrent: exp.isCurrent,
+            order: exp.order,
           });
         }
       }

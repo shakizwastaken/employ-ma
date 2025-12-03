@@ -260,11 +260,66 @@ export const applicantLanguage = pgTable("applicant_language", {
   updatedAt,
 });
 
+export const applicantSkill = pgTable("applicant_skill", {
+  id: text("id").primaryKey(),
+  applicantId: text("applicant_id")
+    .notNull()
+    .references(() => applicant.id, { onDelete: "cascade" }),
+  skill: text("skill").notNull(),
+  educationMethod: text("education_method").notNull(), // "self-taught", "high-school", "associate", "bachelor", "master", "phd", "bootcamp", "online-course", "certification", "work-experience"
+  institution: text("institution"), // school/bootcamp/course name if applicable
+  year: integer("year"), // year completed/learned
+
+  createdAt,
+  updatedAt,
+});
+
+export const previousExperience = pgTable("previous_experience", {
+  id: text("id").primaryKey(),
+  applicantId: text("applicant_id")
+    .notNull()
+    .references(() => applicant.id, { onDelete: "cascade" }),
+  company: text("company").notNull(),
+  role: text("role").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date"), // null for current position
+  description: text("description"),
+  achievements: text("achievements"), // JSON array or text
+  isCurrent: boolean("is_current")
+    .$defaultFn(() => false)
+    .notNull(),
+  order: integer("order").notNull(), // for sorting
+
+  createdAt,
+  updatedAt,
+});
+
+export const experienceSkill = pgTable(
+  "experience_skill",
+  {
+    id: text("id").primaryKey(),
+    experienceId: text("experience_id")
+      .notNull()
+      .references(() => previousExperience.id, { onDelete: "cascade" }),
+    skillId: text("skill_id")
+      .notNull()
+      .references(() => applicantSkill.id, { onDelete: "cascade" }),
+
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    uniqueExperienceSkill: unique().on(table.experienceId, table.skillId),
+  }),
+);
+
 // Applicant relations
 export const applicantRelations = relations(applicant, ({ many, one }) => ({
   roles: many(applicantRole),
   pathAnswers: many(pathAnswer),
   languages: many(applicantLanguage),
+  skills: many(applicantSkill),
+  experiences: many(previousExperience),
   user: one(user, { fields: [applicant.userId], references: [user.id] }),
 }));
 
@@ -312,6 +367,42 @@ export const applicantLanguageRelations = relations(
     applicant: one(applicant, {
       fields: [applicantLanguage.applicantId],
       references: [applicant.id],
+    }),
+  }),
+);
+
+export const applicantSkillRelations = relations(
+  applicantSkill,
+  ({ one, many }) => ({
+    applicant: one(applicant, {
+      fields: [applicantSkill.applicantId],
+      references: [applicant.id],
+    }),
+    experienceSkills: many(experienceSkill),
+  }),
+);
+
+export const previousExperienceRelations = relations(
+  previousExperience,
+  ({ one, many }) => ({
+    applicant: one(applicant, {
+      fields: [previousExperience.applicantId],
+      references: [applicant.id],
+    }),
+    experienceSkills: many(experienceSkill),
+  }),
+);
+
+export const experienceSkillRelations = relations(
+  experienceSkill,
+  ({ one }) => ({
+    experience: one(previousExperience, {
+      fields: [experienceSkill.experienceId],
+      references: [previousExperience.id],
+    }),
+    skill: one(applicantSkill, {
+      fields: [experienceSkill.skillId],
+      references: [applicantSkill.id],
     }),
   }),
 );

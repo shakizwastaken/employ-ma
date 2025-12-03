@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/trpc/react";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -11,13 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -32,33 +25,44 @@ import { Progress } from "@/components/ui/progress";
 import { InfoTooltip } from "@/components/ui/tooltip";
 import { FormStepIndicator } from "@/components/form-step-indicator";
 import { SuccessAnimation } from "@/components/success-animation";
+import { FormStepNavigation } from "@/components/form-step-navigation";
+import { RoleSelectionCards } from "@/components/role-selection-cards";
+import {
+  SkillsInput,
+  type Skill,
+  type EducationMethod,
+} from "@/components/skills-input";
+import {
+  PreviousExperienceForm,
+  type PreviousExperience,
+} from "@/components/previous-experience-form";
 import { OtpVerification } from "@/components/otp-verification";
 import { authClient } from "@/server/better-auth/client";
-import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
 
-type Step = "base" | "path-questions" | "verify";
+type StepType =
+  | "personal"
+  | "professional"
+  | "role"
+  | "skills"
+  | "experiences"
+  | "path-questions"
+  | "verify";
 
 interface Language {
   language: string;
   level: string;
 }
 
-const STEPS = [
-  { id: "base", label: "Basic Info" },
-  { id: "path-questions", label: "Role Questions" },
-  { id: "verify", label: "Verification" },
-];
-
 export function ApplicationForm() {
   const router = useRouter();
-  const [step, setStep] = useState<Step>("base");
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
-  // Base form data
+  // Form data
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -66,42 +70,71 @@ export function ApplicationForm() {
   const [currentJobStatus, setCurrentJobStatus] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [highestEducationLevel, setHighestEducationLevel] = useState("");
-  const [skills, setSkills] = useState("");
   const [availability, setAvailability] = useState<"full-time" | "part-time">(
     "full-time",
   );
   const [languages, setLanguages] = useState<Language[]>([
     { language: "", level: "" },
   ]);
-
-  // Role selection
   const [selectedRoleId, setSelectedRoleId] = useState<string>("");
-
-  // Path answers
-  const [pathAnswers, setPathAnswers] = useState<
-    Record<string, string>
-  >({});
-
-  // Calculate progress
-  const currentStepIndex = STEPS.findIndex((s) => s.id === step);
-  const progress = ((currentStepIndex + 1) / STEPS.length) * 100;
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [experiences, setExperiences] = useState<PreviousExperience[]>([]);
+  const [pathAnswers, setPathAnswers] = useState<Record<string, string>>({});
 
   // Queries
   const { data: roles } = api.applicant.getRoles.useQuery();
   const { data: questionsData } = api.applicant.getQuestions.useQuery(
     { roleId: selectedRoleId },
-    { enabled: !!selectedRoleId && step === "path-questions" },
+    { enabled: !!selectedRoleId },
   );
+
+  // Group path questions into steps of 4
+  const pathQuestionSteps = useMemo(() => {
+    if (!questionsData?.questions) return [];
+    const questions = questionsData.questions;
+    const steps: (typeof questions)[] = [];
+    for (let i = 0; i < questions.length; i += 4) {
+      steps.push(questions.slice(i, i + 4));
+    }
+    return steps;
+  }, [questionsData?.questions]);
+
+  // Build step list dynamically
+  const steps = useMemo(() => {
+    const baseSteps: { id: StepType; label: string }[] = [
+      { id: "personal", label: "Personal Info" },
+      { id: "professional", label: "Professional" },
+      { id: "role", label: "Role Selection" },
+      { id: "skills", label: "Skills" },
+      { id: "experiences", label: "Experiences" },
+    ];
+
+    // Add path question steps
+    for (let i = 0; i < pathQuestionSteps.length; i++) {
+      baseSteps.push({
+        id: "path-questions",
+        label: `Role Questions ${i + 1}/${pathQuestionSteps.length}`,
+      });
+    }
+
+    // Add verification
+    baseSteps.push({ id: "verify", label: "Verification" });
+
+    return baseSteps;
+  }, [pathQuestionSteps.length]);
+
+  const currentStep = steps[currentStepIndex];
+  const progress = ((currentStepIndex + 1) / steps.length) * 100;
 
   // Mutations
   const submitApplication = api.applicant.submitApplication.useMutation({
     onSuccess: () => {
-      setCompletedSteps(new Set([...completedSteps, "base"]));
+      setCompletedSteps(new Set([...completedSteps, currentStepIndex]));
       setShowSuccess(true);
       setTimeout(() => {
         setIsTransitioning(true);
         setTimeout(() => {
-          setStep("path-questions");
+          goToNextStep();
           setIsTransitioning(false);
           setShowSuccess(false);
         }, 300);
@@ -114,12 +147,12 @@ export function ApplicationForm() {
 
   const submitPathAnswers = api.applicant.submitPathAnswers.useMutation({
     onSuccess: () => {
-      setCompletedSteps(new Set([...completedSteps, "path-questions"]));
+      setCompletedSteps(new Set([...completedSteps, currentStepIndex]));
       setShowSuccess(true);
       setTimeout(() => {
         setIsTransitioning(true);
         setTimeout(() => {
-          setStep("verify");
+          goToNextStep();
           setIsTransitioning(false);
           setShowSuccess(false);
         }, 300);
@@ -132,88 +165,140 @@ export function ApplicationForm() {
 
   const verifyEmail = api.applicant.verifyEmail.useMutation({
     onSuccess: () => {
-      setCompletedSteps(new Set([...completedSteps, "verify"]));
-      setTimeout(() => {
-        router.push("/applicant/dashboard");
-      }, 1000);
+      router.push("/applicant/dashboard");
     },
     onError: (error) => {
       setError(error.message || "Failed to verify email");
     },
   });
 
-  const handleBaseSubmit = (e: React.FormEvent) => {
+  const goToNextStep = () => {
+    if (currentStepIndex < steps.length - 1) {
+      setCurrentStepIndex(currentStepIndex + 1);
+    }
+  };
+
+  const goToPreviousStep = () => {
+    if (currentStepIndex > 0) {
+      setCurrentStepIndex(currentStepIndex - 1);
+    }
+  };
+
+  const validateCurrentStep = (): boolean => {
+    switch (currentStep?.id) {
+      case "personal":
+        return !!(fullName && email && phone && city);
+      case "professional":
+        return !!(
+          currentJobStatus &&
+          yearsOfExperience &&
+          highestEducationLevel &&
+          availability
+        );
+      case "role":
+        return !!selectedRoleId;
+      case "skills":
+        return skills.length > 0 && skills.every((s) => s.skill);
+      case "experiences":
+        return true; // Optional
+      case "path-questions":
+        const currentPathStep = getCurrentPathQuestionStep();
+        if (!currentPathStep) return false;
+        return currentPathStep.every((q) =>
+          q.isRequired ? !!pathAnswers[q.id] : true,
+        );
+      default:
+        return true;
+    }
+  };
+
+  const getCurrentPathQuestionStep = () => {
+    if (currentStep?.id !== "path-questions") return null;
+    // Find which path question step we're on
+    let pathStepIndex = 0;
+    for (let i = 0; i < currentStepIndex; i++) {
+      if (steps[i]?.id === "path-questions") pathStepIndex++;
+    }
+    return pathQuestionSteps[pathStepIndex] ?? null;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!selectedRoleId) {
-      setError("Please select a role");
+    if (!validateCurrentStep()) {
+      setError("Please fill in all required fields");
       return;
     }
 
-    const languageEntries = languages.filter(
-      (lang) => lang.language && lang.level,
-    );
+    // Submit data when moving from experiences to path questions
+    if (currentStep?.id === "experiences" && selectedRoleId) {
+      const languageEntries = languages.filter(
+        (lang) => lang.language && lang.level,
+      );
 
-    submitApplication.mutate({
-      fullName,
-      email,
-      phone,
-      city,
-      currentJobStatus,
-      yearsOfExperience: parseInt(yearsOfExperience) || 0,
-      highestEducationLevel,
-      skills: skills || undefined,
-      availability,
-      roleId: selectedRoleId,
-      languages: languageEntries.length > 0 ? languageEntries : undefined,
-    });
-  };
+      submitApplication.mutate({
+        fullName,
+        email,
+        phone,
+        city,
+        currentJobStatus,
+        yearsOfExperience: parseInt(yearsOfExperience) || 0,
+        highestEducationLevel,
+        availability,
+        roleId: selectedRoleId,
+        languages: languageEntries.length > 0 ? languageEntries : undefined,
+        skills: skills.map((s) => ({
+          skill: s.skill,
+          educationMethod: s.educationMethod,
+          institution: s.institution,
+          year: s.year,
+        })),
+        experiences: experiences.map((e) => ({
+          company: e.company,
+          role: e.role,
+          startDate: e.startDate,
+          endDate: e.endDate,
+          description: e.description,
+          achievements: e.achievements,
+          isCurrent: e.isCurrent,
+          order: e.order,
+          linkedSkillIds: e.linkedSkillIds,
+        })),
+      });
+    } else if (currentStep?.id === "path-questions") {
+      const currentPathStep = getCurrentPathQuestionStep();
+      if (!currentPathStep) return;
 
-  const handlePathQuestionsSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+      // Check if this is the last path question step
+      const pathStepIndex = steps
+        .slice(0, currentStepIndex)
+        .filter((s) => s.id === "path-questions").length;
 
-    if (!questionsData?.questions) {
-      setError("No questions found");
-      return;
+      if (pathStepIndex === pathQuestionSteps.length - 1) {
+        // Last path question step - submit all answers
+        const allAnswers = questionsData!.questions
+          .filter((q) => pathAnswers[q.id])
+          .map((q) => ({
+            templateId: q.id,
+            questionId: q.id,
+            answer: pathAnswers[q.id]!,
+          }));
+
+        if (allAnswers.length > 0) {
+          submitPathAnswers.mutate({
+            applicantEmail: email,
+            answers: allAnswers,
+          });
+        } else {
+          goToNextStep();
+        }
+      } else {
+        goToNextStep();
+      }
+    } else {
+      goToNextStep();
     }
-
-    const answers = questionsData.questions
-      .filter((q) => pathAnswers[q.id])
-      .map((q) => ({
-        templateId: q.id,
-        questionId: q.id,
-        answer: pathAnswers[q.id]!,
-      }));
-
-    if (answers.length === 0) {
-      setError("Please answer at least one question");
-      return;
-    }
-
-    submitPathAnswers.mutate({
-      applicantEmail: email,
-      answers,
-    });
-  };
-
-  const handleAddLanguage = () => {
-    setLanguages([...languages, { language: "", level: "" }]);
-  };
-
-  const handleRemoveLanguage = (index: number) => {
-    setLanguages(languages.filter((_, i) => i !== index));
-  };
-
-  const handleLanguageChange = (
-    index: number,
-    field: "language" | "level",
-    value: string,
-  ) => {
-    const updated = [...languages];
-    updated[index] = { ...updated[index]!, [field]: value };
-    setLanguages(updated);
   };
 
   const handleResendOtp = async () => {
@@ -227,31 +312,297 @@ export function ApplicationForm() {
     }
   };
 
-  // Calculate completion for base form
-  const baseFields = {
-    fullName,
-    email,
-    phone,
-    city,
-    currentJobStatus,
-    yearsOfExperience,
-    highestEducationLevel,
-    selectedRoleId,
-    availability,
+  const renderStepContent = () => {
+    if (!currentStep) return null;
+
+    switch (currentStep.id) {
+      case "personal":
+        return (
+          <FieldGroup className="space-y-4">
+            {error && (
+              <Field>
+                <div className="bg-destructive/10 text-destructive animate-in fade-in-0 rounded-md p-3 text-sm">
+                  {error}
+                </div>
+              </Field>
+            )}
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+              <FieldLabel htmlFor="fullName">Full Name *</FieldLabel>
+              <Input
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className="transition-all duration-150 focus:scale-[1.02]"
+              />
+            </Field>
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-75 duration-300">
+              <FieldLabel htmlFor="email">Email *</FieldLabel>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="transition-all duration-150 focus:scale-[1.02]"
+              />
+            </Field>
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-100 duration-300">
+              <FieldLabel htmlFor="phone">Phone *</FieldLabel>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                className="transition-all duration-150 focus:scale-[1.02]"
+              />
+            </Field>
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-150 duration-300">
+              <FieldLabel htmlFor="city">City *</FieldLabel>
+              <Input
+                id="city"
+                value={city}
+                onChange={(e) => setCity(e.target.value)}
+                required
+                className="transition-all duration-150 focus:scale-[1.02]"
+              />
+            </Field>
+          </FieldGroup>
+        );
+
+      case "professional":
+        return (
+          <FieldGroup className="space-y-4">
+            {error && (
+              <Field>
+                <div className="bg-destructive/10 text-destructive animate-in fade-in-0 rounded-md p-3 text-sm">
+                  {error}
+                </div>
+              </Field>
+            )}
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
+              <FieldLabel htmlFor="currentJobStatus">
+                Current Job Status *
+              </FieldLabel>
+              <Select
+                value={currentJobStatus}
+                onValueChange={setCurrentJobStatus}
+              >
+                <SelectTrigger className="transition-all duration-150 focus:scale-[1.02]">
+                  <SelectValue placeholder="Select job status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="employed">Employed</SelectItem>
+                  <SelectItem value="unemployed">Unemployed</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="freelancer">Freelancer</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-75 duration-300">
+              <FieldLabel htmlFor="yearsOfExperience">
+                Years of Experience *
+              </FieldLabel>
+              <Input
+                id="yearsOfExperience"
+                type="number"
+                min="0"
+                value={yearsOfExperience}
+                onChange={(e) => setYearsOfExperience(e.target.value)}
+                required
+                className="transition-all duration-150 focus:scale-[1.02]"
+              />
+            </Field>
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-100 duration-300">
+              <FieldLabel htmlFor="highestEducationLevel">
+                Highest Education Level *
+              </FieldLabel>
+              <Select
+                value={highestEducationLevel}
+                onValueChange={setHighestEducationLevel}
+              >
+                <SelectTrigger className="transition-all duration-150 focus:scale-[1.02]">
+                  <SelectValue placeholder="Select education level" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high-school">High School</SelectItem>
+                  <SelectItem value="associate">Associate Degree</SelectItem>
+                  <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
+                  <SelectItem value="master">Master's Degree</SelectItem>
+                  <SelectItem value="phd">PhD</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field className="animate-in fade-in-0 slide-in-from-bottom-2 delay-150 duration-300">
+              <FieldLabel>Availability *</FieldLabel>
+              <RadioGroup
+                value={availability}
+                onValueChange={(value) =>
+                  setAvailability(value as "full-time" | "part-time")
+                }
+                className="space-y-2"
+              >
+                <div className="hover:bg-accent/50 flex items-center space-x-2 rounded-md border p-3 transition-all duration-150">
+                  <RadioGroupItem value="full-time" id="full-time" />
+                  <label htmlFor="full-time" className="flex-1 cursor-pointer">
+                    Full-time (80+ hours per week)
+                  </label>
+                </div>
+                <div className="hover:bg-accent/50 flex items-center space-x-2 rounded-md border p-3 transition-all duration-150">
+                  <RadioGroupItem value="part-time" id="part-time" />
+                  <label htmlFor="part-time" className="flex-1 cursor-pointer">
+                    Part-time (40+ hours per week)
+                  </label>
+                </div>
+              </RadioGroup>
+            </Field>
+          </FieldGroup>
+        );
+
+      case "role":
+        return (
+          <div className="space-y-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive animate-in fade-in-0 rounded-md p-3 text-sm">
+                {error}
+              </div>
+            )}
+            {roles && roles.length > 0 ? (
+              <RoleSelectionCards
+                roles={roles}
+                selectedRoleId={selectedRoleId}
+                onSelect={setSelectedRoleId}
+              />
+            ) : (
+              <p className="text-muted-foreground">No roles available</p>
+            )}
+          </div>
+        );
+
+      case "skills":
+        return (
+          <div className="space-y-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive animate-in fade-in-0 rounded-md p-3 text-sm">
+                {error}
+              </div>
+            )}
+            <SkillsInput skills={skills} onChange={setSkills} />
+          </div>
+        );
+
+      case "experiences":
+        return (
+          <div className="space-y-4">
+            {error && (
+              <div className="bg-destructive/10 text-destructive animate-in fade-in-0 rounded-md p-3 text-sm">
+                {error}
+              </div>
+            )}
+            <PreviousExperienceForm
+              experiences={experiences}
+              onChange={setExperiences}
+              availableSkills={skills}
+              maxExperiences={15}
+            />
+          </div>
+        );
+
+      case "path-questions":
+        const currentPathStep = getCurrentPathQuestionStep();
+        if (!currentPathStep || currentPathStep.length === 0) {
+          return (
+            <p className="text-muted-foreground">No questions available</p>
+          );
+        }
+
+        return (
+          <FieldGroup className="space-y-4">
+            {error && (
+              <Field>
+                <div className="bg-destructive/10 text-destructive animate-in fade-in-0 rounded-md p-3 text-sm">
+                  {error}
+                </div>
+              </Field>
+            )}
+            {currentPathStep.map((question, index) => (
+              <Field
+                key={question.id}
+                className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center gap-2">
+                  <FieldLabel htmlFor={question.id} className="flex-1">
+                    {question.questionText}
+                    {question.isRequired && " *"}
+                  </FieldLabel>
+                  {question.explanation && (
+                    <InfoTooltip content={question.explanation} />
+                  )}
+                </div>
+                {question.questionType === "textarea" ? (
+                  <Textarea
+                    id={question.id}
+                    value={pathAnswers[question.id] || ""}
+                    onChange={(e) =>
+                      setPathAnswers({
+                        ...pathAnswers,
+                        [question.id]: e.target.value,
+                      })
+                    }
+                    required={question.isRequired}
+                    className="min-h-[120px] transition-all duration-150 focus:scale-[1.01]"
+                  />
+                ) : (
+                  <Input
+                    id={question.id}
+                    value={pathAnswers[question.id] || ""}
+                    onChange={(e) =>
+                      setPathAnswers({
+                        ...pathAnswers,
+                        [question.id]: e.target.value,
+                      })
+                    }
+                    required={question.isRequired}
+                    className="transition-all duration-150 focus:scale-[1.02]"
+                  />
+                )}
+              </Field>
+            ))}
+          </FieldGroup>
+        );
+
+      case "verify":
+        return (
+          <OtpVerification
+            email={email}
+            onVerify={async (otp) => {
+              await verifyEmail.mutateAsync({ email, otp });
+            }}
+            onResend={handleResendOtp}
+            type="email-verification"
+            isLoading={verifyEmail.isPending}
+            error={error}
+          />
+        );
+
+      default:
+        return null;
+    }
   };
-  const completedBaseFields = Object.values(baseFields).filter(
-    (v) => v !== "" && v !== undefined,
-  ).length;
-  const totalBaseFields = Object.keys(baseFields).length;
-  const baseCompletion = (completedBaseFields / totalBaseFields) * 100;
+
+  if (!currentStep) return null;
 
   return (
-    <div className="w-full max-w-3xl mx-auto space-y-6">
+    <div className="mx-auto w-full max-w-3xl space-y-6">
       {/* Progress Bar */}
       <div className="space-y-2">
         <div className="flex items-center justify-between text-sm">
           <span className="font-medium">
-            Step {currentStepIndex + 1} of {STEPS.length}
+            Step {currentStepIndex + 1} of {steps.length}
           </span>
           <span className="text-muted-foreground">
             {Math.round(progress)}% Complete
@@ -262,7 +613,7 @@ export function ApplicationForm() {
 
       {/* Step Indicator */}
       <FormStepIndicator
-        steps={STEPS}
+        steps={steps.map((s) => ({ id: s.id, label: s.label }))}
         currentStep={currentStepIndex + 1}
         className="mb-6"
       />
@@ -271,11 +622,19 @@ export function ApplicationForm() {
       {showSuccess && (
         <SuccessAnimation
           message={
-            step === "base"
-              ? "✓ Basic information saved!"
-              : step === "path-questions"
-                ? "✓ Role questions completed!"
-                : "🎉 Application submitted!"
+            currentStep.id === "personal"
+              ? "✓ Personal information saved!"
+              : currentStep.id === "professional"
+                ? "✓ Professional details saved!"
+                : currentStep.id === "role"
+                  ? "✓ Role selected!"
+                  : currentStep.id === "skills"
+                    ? "✓ Skills added!"
+                    : currentStep.id === "experiences"
+                      ? "✓ Experiences saved!"
+                      : currentStep.id === "path-questions"
+                        ? "✓ Questions answered!"
+                        : "🎉 Application submitted!"
           }
           onComplete={() => setShowSuccess(false)}
         />
@@ -285,415 +644,48 @@ export function ApplicationForm() {
       <Card
         className={cn(
           "w-full transition-all duration-300",
-          isTransitioning && "opacity-0 scale-95",
-          !isTransitioning && "opacity-100 scale-100"
+          isTransitioning && "scale-95 opacity-0",
+          !isTransitioning && "scale-100 opacity-100",
         )}
       >
-        {step === "base" && (
-          <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
-            <CardHeader>
-              <CardTitle>Application Form</CardTitle>
-              <CardDescription>
-                Step 1 of 3: Please fill in your basic information
-                {baseCompletion > 0 && (
-                  <span className="ml-2 text-primary">
-                    ({Math.round(baseCompletion)}% complete)
-                  </span>
-                )}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleBaseSubmit}>
-                <FieldGroup className="space-y-8">
-                  {error && (
-                    <Field>
-                      <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm animate-in fade-in-0 slide-in-from-top-2">
-                        {error}
-                      </div>
-                    </Field>
-                  )}
+        <CardHeader>
+          <CardTitle>{currentStep.label}</CardTitle>
+          <CardDescription>
+            {currentStep.id === "path-questions"
+              ? `Answer questions for ${questionsData?.role.name || "your selected role"}`
+              : `Please provide the following information`}
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
+              {renderStepContent()}
+            </div>
 
-                  {/* Personal Information Section */}
-                  <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">
-                        Personal Information
-                      </h3>
-                      <Separator className="flex-1" />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field className="animate-in fade-in-0 slide-in-from-left-2 duration-300 delay-75">
-                        <FieldLabel htmlFor="fullName">Full Name *</FieldLabel>
-                        <Input
-                          id="fullName"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          required
-                          disabled={submitApplication.isPending}
-                          className="transition-all duration-150 focus:scale-[1.02]"
-                        />
-                      </Field>
-
-                      <Field className="animate-in fade-in-0 slide-in-from-right-2 duration-300 delay-100">
-                        <FieldLabel htmlFor="email">Email *</FieldLabel>
-                        <Input
-                          id="email"
-                          type="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                          disabled={submitApplication.isPending}
-                          className="transition-all duration-150 focus:scale-[1.02]"
-                        />
-                      </Field>
-
-                      <Field className="animate-in fade-in-0 slide-in-from-left-2 duration-300 delay-150">
-                        <FieldLabel htmlFor="phone">Phone *</FieldLabel>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                          required
-                          disabled={submitApplication.isPending}
-                          className="transition-all duration-150 focus:scale-[1.02]"
-                        />
-                      </Field>
-
-                      <Field className="animate-in fade-in-0 slide-in-from-right-2 duration-300 delay-200">
-                        <FieldLabel htmlFor="city">City *</FieldLabel>
-                        <Input
-                          id="city"
-                          value={city}
-                          onChange={(e) => setCity(e.target.value)}
-                          required
-                          disabled={submitApplication.isPending}
-                          className="transition-all duration-150 focus:scale-[1.02]"
-                        />
-                      </Field>
-                    </div>
-                  </div>
-
-                  {/* Professional Details Section */}
-                  <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-300">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">
-                        Professional Details
-                      </h3>
-                      <Separator className="flex-1" />
-                    </div>
-
-                    <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
-                      <FieldLabel htmlFor="role">Role(s) of Interest *</FieldLabel>
-                      <Select
-                        value={selectedRoleId}
-                        onValueChange={setSelectedRoleId}
-                        disabled={submitApplication.isPending}
-                      >
-                        <SelectTrigger className="transition-all duration-150 focus:scale-[1.02]">
-                          <SelectValue placeholder="Select a role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {roles?.map((role) => (
-                            <SelectItem key={role.id} value={role.id}>
-                              {role.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </Field>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <Field className="animate-in fade-in-0 slide-in-from-left-2 duration-300 delay-100">
-                        <FieldLabel htmlFor="currentJobStatus">
-                          Current Job Status *
-                        </FieldLabel>
-                        <Select
-                          value={currentJobStatus}
-                          onValueChange={setCurrentJobStatus}
-                          disabled={submitApplication.isPending}
-                        >
-                          <SelectTrigger className="transition-all duration-150 focus:scale-[1.02]">
-                            <SelectValue placeholder="Select job status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="employed">Employed</SelectItem>
-                            <SelectItem value="unemployed">Unemployed</SelectItem>
-                            <SelectItem value="student">Student</SelectItem>
-                            <SelectItem value="freelancer">Freelancer</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-
-                      <Field className="animate-in fade-in-0 slide-in-from-right-2 duration-300 delay-150">
-                        <FieldLabel htmlFor="yearsOfExperience">
-                          Years of Experience *
-                        </FieldLabel>
-                        <Input
-                          id="yearsOfExperience"
-                          type="number"
-                          min="0"
-                          value={yearsOfExperience}
-                          onChange={(e) => setYearsOfExperience(e.target.value)}
-                          required
-                          disabled={submitApplication.isPending}
-                          className="transition-all duration-150 focus:scale-[1.02]"
-                        />
-                      </Field>
-
-                      <Field className="animate-in fade-in-0 slide-in-from-left-2 duration-300 delay-200 md:col-span-2">
-                        <FieldLabel htmlFor="highestEducationLevel">
-                          Highest Education Level *
-                        </FieldLabel>
-                        <Select
-                          value={highestEducationLevel}
-                          onValueChange={setHighestEducationLevel}
-                          disabled={submitApplication.isPending}
-                        >
-                          <SelectTrigger className="transition-all duration-150 focus:scale-[1.02]">
-                            <SelectValue placeholder="Select education level" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="high-school">High School</SelectItem>
-                            <SelectItem value="associate">Associate Degree</SelectItem>
-                            <SelectItem value="bachelor">Bachelor's Degree</SelectItem>
-                            <SelectItem value="master">Master's Degree</SelectItem>
-                            <SelectItem value="phd">PhD</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </Field>
-                    </div>
-                  </div>
-
-                  {/* Skills & Availability Section */}
-                  <div className="space-y-4 animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-500">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">
-                        Skills & Availability
-                      </h3>
-                      <Separator className="flex-1" />
-                    </div>
-
-                    <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-75">
-                      <FieldLabel htmlFor="skills">Skills</FieldLabel>
-                      <Textarea
-                        id="skills"
-                        value={skills}
-                        onChange={(e) => setSkills(e.target.value)}
-                        placeholder="List your skills (comma-separated or free text)"
-                        disabled={submitApplication.isPending}
-                        className="transition-all duration-150 focus:scale-[1.01] min-h-[100px]"
-                      />
-                    </Field>
-
-                    <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-100">
-                      <FieldLabel>Availability *</FieldLabel>
-                      <RadioGroup
-                        value={availability}
-                        onValueChange={(value) =>
-                          setAvailability(value as "full-time" | "part-time")
-                        }
-                        disabled={submitApplication.isPending}
-                        className="space-y-2"
-                      >
-                        <div className="flex items-center space-x-2 p-3 rounded-md border transition-all duration-150 hover:bg-accent/50">
-                          <RadioGroupItem value="full-time" id="full-time" />
-                          <label htmlFor="full-time" className="cursor-pointer flex-1">
-                            Full-time (80+ hours per week)
-                          </label>
-                        </div>
-                        <div className="flex items-center space-x-2 p-3 rounded-md border transition-all duration-150 hover:bg-accent/50">
-                          <RadioGroupItem value="part-time" id="part-time" />
-                          <label htmlFor="part-time" className="cursor-pointer flex-1">
-                            Part-time (40+ hours per week)
-                          </label>
-                        </div>
-                      </RadioGroup>
-                    </Field>
-
-                    <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-150">
-                      <FieldLabel>Languages & Levels</FieldLabel>
-                      {languages.map((lang, index) => (
-                        <div
-                          key={index}
-                          className="flex gap-2 mb-2 animate-in fade-in-0 slide-in-from-left-2 duration-300"
-                        >
-                          <Input
-                            placeholder="Language"
-                            value={lang.language}
-                            onChange={(e) =>
-                              handleLanguageChange(index, "language", e.target.value)
-                            }
-                            disabled={submitApplication.isPending}
-                            className="flex-1 transition-all duration-150 focus:scale-[1.02]"
-                          />
-                          <Select
-                            value={lang.level}
-                            onValueChange={(value) =>
-                              handleLanguageChange(index, "level", value)
-                            }
-                            disabled={submitApplication.isPending}
-                          >
-                            <SelectTrigger className="w-40 transition-all duration-150 focus:scale-[1.02]">
-                              <SelectValue placeholder="Level" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="native">Native</SelectItem>
-                              <SelectItem value="fluent">Fluent</SelectItem>
-                              <SelectItem value="intermediate">Intermediate</SelectItem>
-                              <SelectItem value="basic">Basic</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {languages.length > 1 && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => handleRemoveLanguage(index)}
-                              disabled={submitApplication.isPending}
-                              className="transition-all duration-150 hover:scale-105"
-                            >
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-                      ))}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={handleAddLanguage}
-                        disabled={submitApplication.isPending}
-                        className="transition-all duration-150 hover:scale-105"
-                      >
-                        Add Language
-                      </Button>
-                    </Field>
-                  </div>
-
-                  <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-700">
-                    <Button
-                      type="submit"
-                      className="w-full transition-all duration-150 hover:scale-105"
-                      disabled={submitApplication.isPending}
-                    >
-                      {submitApplication.isPending
-                        ? "Submitting..."
-                        : "Continue to Role Questions →"}
-                    </Button>
-                  </Field>
-                </FieldGroup>
-              </form>
-            </CardContent>
-          </div>
-        )}
-
-        {step === "path-questions" && questionsData?.questions && (
-          <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
-            <CardHeader>
-              <CardTitle>Path-Specific Questions</CardTitle>
-              <CardDescription>
-                Step 2 of 3: Answer questions for {questionsData.role.name}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handlePathQuestionsSubmit}>
-                <FieldGroup className="space-y-6">
-                  {error && (
-                    <Field>
-                      <div className="bg-destructive/10 text-destructive rounded-md p-3 text-sm animate-in fade-in-0 slide-in-from-top-2">
-                        {error}
-                      </div>
-                    </Field>
-                  )}
-
-                  {questionsData.questions.map((question, index) => (
-                    <Field
-                      key={question.id}
-                      className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300"
-                      style={{ animationDelay: `${index * 100}ms` }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <FieldLabel htmlFor={question.id} className="flex-1">
-                          {question.questionText}
-                          {question.isRequired && " *"}
-                        </FieldLabel>
-                        {question.explanation && (
-                          <InfoTooltip content={question.explanation} />
-                        )}
-                      </div>
-                      {question.questionType === "textarea" ? (
-                        <Textarea
-                          id={question.id}
-                          value={pathAnswers[question.id] || ""}
-                          onChange={(e) =>
-                            setPathAnswers({
-                              ...pathAnswers,
-                              [question.id]: e.target.value,
-                            })
-                          }
-                          required={question.isRequired}
-                          disabled={submitPathAnswers.isPending}
-                          className="transition-all duration-150 focus:scale-[1.01] min-h-[120px]"
-                        />
-                      ) : (
-                        <Input
-                          id={question.id}
-                          value={pathAnswers[question.id] || ""}
-                          onChange={(e) =>
-                            setPathAnswers({
-                              ...pathAnswers,
-                              [question.id]: e.target.value,
-                            })
-                          }
-                          required={question.isRequired}
-                          disabled={submitPathAnswers.isPending}
-                          className="transition-all duration-150 focus:scale-[1.02]"
-                        />
-                      )}
-                    </Field>
-                  ))}
-
-                  <Field className="animate-in fade-in-0 slide-in-from-bottom-2 duration-300 delay-500">
-                    <Button
-                      type="submit"
-                      className="w-full transition-all duration-150 hover:scale-105"
-                      disabled={submitPathAnswers.isPending}
-                    >
-                      {submitPathAnswers.isPending
-                        ? "Submitting..."
-                        : "Continue to Verification →"}
-                    </Button>
-                  </Field>
-                </FieldGroup>
-              </form>
-            </CardContent>
-          </div>
-        )}
-
-        {step === "verify" && (
-          <div className="animate-in fade-in-0 slide-in-from-right-4 duration-300">
-            <CardHeader>
-              <CardTitle>Email Verification</CardTitle>
-              <CardDescription>
-                Step 3 of 3: Verify your email to complete your application
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <OtpVerification
-                email={email}
-                onVerify={async (otp) => {
-                  await verifyEmail.mutateAsync({ email, otp });
-                }}
-                onResend={handleResendOtp}
-                type="email-verification"
-                isLoading={verifyEmail.isPending}
-                error={error}
+            {currentStep.id !== "verify" && (
+              <FormStepNavigation
+                onPrevious={goToPreviousStep}
+                canGoPrevious={currentStepIndex > 0}
+                canGoNext={validateCurrentStep()}
+                isSubmitting={
+                  submitApplication.isPending || submitPathAnswers.isPending
+                }
+                nextLabel={
+                  currentStep.id === "experiences"
+                    ? "Continue to Questions →"
+                    : currentStep.id === "path-questions" &&
+                        getCurrentPathQuestionStep() &&
+                        steps
+                          .slice(0, currentStepIndex)
+                          .filter((s) => s.id === "path-questions").length ===
+                          pathQuestionSteps.length - 1
+                      ? "Continue to Verification →"
+                      : "Next →"
+                }
               />
-            </CardContent>
-          </div>
-        )}
+            )}
+          </form>
+        </CardContent>
       </Card>
     </div>
   );

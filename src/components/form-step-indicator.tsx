@@ -28,15 +28,16 @@ export function FormStepIndicator({
 
         return (
           <React.Fragment key={step.id}>
-            <div className="flex flex-col items-center flex-1">
+            <div className="flex flex-1 flex-col items-center">
               <div
                 className={cn(
-                  "flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300",
+                  "flex h-10 w-10 items-center justify-center rounded-full border-2 transition-all duration-300",
                   isCompleted &&
                     "bg-primary border-primary text-primary-foreground",
                   isCurrent &&
                     "bg-primary border-primary text-primary-foreground scale-110",
-                  isPending && "bg-background border-muted text-muted-foreground"
+                  isPending &&
+                    "bg-background border-muted text-muted-foreground",
                 )}
               >
                 {isCompleted ? (
@@ -50,7 +51,7 @@ export function FormStepIndicator({
                   "mt-2 text-xs font-medium transition-colors duration-300",
                   isCurrent && "text-foreground",
                   isCompleted && "text-muted-foreground",
-                  isPending && "text-muted-foreground"
+                  isPending && "text-muted-foreground",
                 )}
               >
                 {step.label}
@@ -59,8 +60,8 @@ export function FormStepIndicator({
             {index < steps.length - 1 && (
               <div
                 className={cn(
-                  "h-0.5 flex-1 mx-4 transition-all duration-300",
-                  isCompleted ? "bg-primary" : "bg-muted"
+                  "mx-4 h-0.5 flex-1 transition-all duration-300",
+                  isCompleted ? "bg-primary" : "bg-muted",
                 )}
               />
             )}
@@ -70,4 +71,3 @@ export function FormStepIndicator({
     </div>
   );
 }
-

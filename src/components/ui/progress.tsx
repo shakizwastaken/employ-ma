@@ -12,13 +12,13 @@ function Progress({ value, max = 100, className, ...props }: ProgressProps) {
   return (
     <div
       className={cn(
-        "relative h-2 w-full overflow-hidden rounded-full bg-secondary",
-        className
+        "bg-secondary relative h-2 w-full overflow-hidden rounded-full",
+        className,
       )}
       {...props}
     >
       <div
-        className="h-full bg-primary transition-all duration-300 ease-out"
+        className="bg-primary h-full transition-all duration-300 ease-out"
         style={{ width: `${percentage}%` }}
         role="progressbar"
         aria-valuenow={value}
@@ -31,4 +31,3 @@ function Progress({ value, max = 100, className, ...props }: ProgressProps) {
 }
 
 export { Progress };
-
