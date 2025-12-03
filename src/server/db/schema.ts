@@ -217,6 +217,7 @@ export const questionTemplate = pgTable("question_template", {
   questionText: text("question_text").notNull(),
   questionType: text("question_type").notNull(), // "text", "textarea", "select", "radio", "checkbox", "file"
   options: text("options"), // JSON string for select/radio/checkbox options
+  explanation: text("explanation"), // Optional explanation for why question is asked
   isRequired: boolean("is_required")
     .$defaultFn(() => true)
     .notNull(),
