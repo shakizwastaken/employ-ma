@@ -1,10 +1,12 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  integer,
   pgTable,
   pgTableCreator,
   text,
   timestamp,
+  unique,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -148,74 +150,167 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
 }));
 
 export const userRelations = relations(user, ({ many }) => ({
-  templates: many(template),
   account: many(account),
   session: many(session),
   members: many(member),
   invitations: many(invitation),
 }));
 
-export const template = pgTable("template", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-
-  name: text("name").notNull(),
-
-  description: text("description"),
-  content: text("content").notNull(),
-
-  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
-
-  createdAt,
-  updatedAt,
-});
-
-export const templatePage = pgTable("template_page", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-
-  templateId: uuid("template_id")
-    .notNull()
-    .references(() => template.id, { onDelete: "cascade" }),
-
-  name: text("name").notNull(),
-  slug: text("slug").notNull(),
-  description: text("description"),
-  content: text("content").notNull(),
+// Applicant tables
+export const applicant = pgTable("applicant", {
+  id: text("id").primaryKey(),
+  fullName: text("full_name").notNull(),
+  email: text("email").notNull().unique(),
+  phone: text("phone").notNull(),
+  city: text("city").notNull(),
+  currentJobStatus: text("current_job_status").notNull(),
+  yearsOfExperience: integer("years_of_experience").notNull(),
+  highestEducationLevel: text("highest_education_level").notNull(),
+  skills: text("skills"),
+  availability: text("availability").notNull(), // "full-time" or "part-time"
+  emailVerified: boolean("email_verified")
+    .$defaultFn(() => false)
+    .notNull(),
+  userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
 
   createdAt,
   updatedAt,
 });
 
-export const templateSection = pgTable("template_section", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-
-  name: text("name").notNull(),
+export const role = pgTable("role", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
   description: text("description"),
-  pageId: uuid("page_id")
-    .notNull()
-    .references(() => templatePage.id, { onDelete: "cascade" }),
+  isActive: boolean("is_active")
+    .$defaultFn(() => true)
+    .notNull(),
 
   createdAt,
   updatedAt,
 });
 
-export const templatePageRelations = relations(templatePage, ({ one }) => ({
-  template: one(template, {
-    fields: [templatePage.templateId],
-    references: [template.id],
-  }),
-}));
+export const applicantRole = pgTable(
+  "applicant_role",
+  {
+    id: text("id").primaryKey(),
+    applicantId: text("applicant_id")
+      .notNull()
+      .references(() => applicant.id, { onDelete: "cascade" }),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => role.id, { onDelete: "cascade" }),
 
-export const templateSectionRelations = relations(
-  templateSection,
-  ({ one }) => ({
-    page: one(templatePage, {
-      fields: [templateSection.pageId],
-      references: [templatePage.id],
-    }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    uniqueApplicantRole: unique().on(table.applicantId, table.roleId),
   }),
 );
 
-export const templateRelations = relations(template, ({ one, many }) => ({
-  pages: many(templatePage),
-  user: one(user, { fields: [template.userId], references: [user.id] }),
+export const questionTemplate = pgTable("question_template", {
+  id: text("id").primaryKey(),
+  roleId: text("role_id")
+    .notNull()
+    .references(() => role.id, { onDelete: "cascade" }),
+  questionText: text("question_text").notNull(),
+  questionType: text("question_type").notNull(), // "text", "textarea", "select", "radio", "checkbox", "file"
+  options: text("options"), // JSON string for select/radio/checkbox options
+  isRequired: boolean("is_required")
+    .$defaultFn(() => true)
+    .notNull(),
+  order: integer("order").notNull(),
+
+  createdAt,
+  updatedAt,
+});
+
+export const pathAnswer = pgTable(
+  "path_answer",
+  {
+    id: text("id").primaryKey(),
+    applicantId: text("applicant_id")
+      .notNull()
+      .references(() => applicant.id, { onDelete: "cascade" }),
+    templateId: text("template_id")
+      .notNull()
+      .references(() => questionTemplate.id, { onDelete: "cascade" }),
+    questionId: text("question_id").notNull(), // denormalized for easier querying
+    answer: text("answer").notNull(), // can be JSON for complex answers
+
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    uniqueApplicantTemplate: unique().on(table.applicantId, table.templateId),
+  }),
+);
+
+export const applicantLanguage = pgTable("applicant_language", {
+  id: text("id").primaryKey(),
+  applicantId: text("applicant_id")
+    .notNull()
+    .references(() => applicant.id, { onDelete: "cascade" }),
+  language: text("language").notNull(),
+  level: text("level").notNull(), // "native", "fluent", "intermediate", "basic"
+
+  createdAt,
+  updatedAt,
+});
+
+// Applicant relations
+export const applicantRelations = relations(applicant, ({ many, one }) => ({
+  roles: many(applicantRole),
+  pathAnswers: many(pathAnswer),
+  languages: many(applicantLanguage),
+  user: one(user, { fields: [applicant.userId], references: [user.id] }),
 }));
+
+export const roleRelations = relations(role, ({ many }) => ({
+  applicants: many(applicantRole),
+  questionTemplates: many(questionTemplate),
+}));
+
+export const applicantRoleRelations = relations(applicantRole, ({ one }) => ({
+  applicant: one(applicant, {
+    fields: [applicantRole.applicantId],
+    references: [applicant.id],
+  }),
+  role: one(role, {
+    fields: [applicantRole.roleId],
+    references: [role.id],
+  }),
+}));
+
+export const questionTemplateRelations = relations(
+  questionTemplate,
+  ({ one, many }) => ({
+    role: one(role, {
+      fields: [questionTemplate.roleId],
+      references: [role.id],
+    }),
+    pathAnswers: many(pathAnswer),
+  }),
+);
+
+export const pathAnswerRelations = relations(pathAnswer, ({ one }) => ({
+  applicant: one(applicant, {
+    fields: [pathAnswer.applicantId],
+    references: [applicant.id],
+  }),
+  template: one(questionTemplate, {
+    fields: [pathAnswer.templateId],
+    references: [questionTemplate.id],
+  }),
+}));
+
+export const applicantLanguageRelations = relations(
+  applicantLanguage,
+  ({ one }) => ({
+    applicant: one(applicant, {
+      fields: [applicantLanguage.applicantId],
+      references: [applicant.id],
+    }),
+  }),
+);

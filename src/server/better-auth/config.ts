@@ -1,13 +1,13 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { organization } from "better-auth/plugins";
+import { emailOTP, organization } from "better-auth/plugins";
 
 import { env } from "@/env";
 import { db } from "@/server/db";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
-    provider: "pg", 
+    provider: "pg",
   }),
   emailAndPassword: {
     enabled: true,
@@ -31,6 +31,38 @@ export const auth = betterAuth({
       //   //   body: `You've been invited to join ${data.organization.name}. Click here to accept: ${inviteLink}`,
       //   // });
       // },
+    }),
+    emailOTP({
+      overrideDefaultEmailVerification: true,
+      async sendVerificationOTP({ email, otp, type }) {
+        // TODO: Implement actual email sending service
+        // For now, log to console (replace with actual email service)
+        console.log(`[Email OTP] ${type} OTP for ${email}: ${otp}`);
+
+        // Example implementation:
+        // if (type === "sign-in") {
+        //   await sendEmail({
+        //     to: email,
+        //     subject: "Your sign-in code",
+        //     body: `Your OTP code is: ${otp}`,
+        //   });
+        // } else if (type === "email-verification") {
+        //   await sendEmail({
+        //     to: email,
+        //     subject: "Verify your email",
+        //     body: `Your verification code is: ${otp}`,
+        //   });
+        // } else {
+        //   await sendEmail({
+        //     to: email,
+        //     subject: "Reset your password",
+        //     body: `Your password reset code is: ${otp}`,
+        //   });
+        // }
+      },
+      otpLength: 6,
+      expiresIn: 300, // 5 minutes
+      allowedAttempts: 3,
     }),
   ],
 });
