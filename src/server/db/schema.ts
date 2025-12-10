@@ -1,6 +1,11 @@
 import { relations } from "drizzle-orm";
 import {
   boolean,
+  date,
+  index,
+  integer,
+  numeric,
+  pgEnum,
   pgTable,
   pgTableCreator,
   text,
@@ -86,6 +91,7 @@ export const sessionRelations = relations(session, ({ one }) => ({
 
 export const organization = pgTable("organization", {
   id: text("id").primaryKey(),
+
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   logo: text("logo"),
@@ -97,6 +103,7 @@ export const organization = pgTable("organization", {
 
 export const member = pgTable("member", {
   id: text("id").primaryKey(),
+
   userId: text("user_id")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
@@ -111,6 +118,7 @@ export const member = pgTable("member", {
 
 export const invitation = pgTable("invitation", {
   id: text("id").primaryKey(),
+
   email: text("email").notNull(),
   inviterId: text("inviter_id")
     .notNull()
@@ -125,6 +133,328 @@ export const invitation = pgTable("invitation", {
   createdAt,
   updatedAt,
 });
+
+export const country = pgTable("country", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  name: text("name").notNull(),
+  code: text("code").notNull(),
+
+  createdAt,
+  updatedAt,
+});
+
+export const jobStatus = pgEnum("current_job_status", [
+  "employed",
+  "unemployed",
+  "self_employed",
+  "retired",
+  "student",
+  "other",
+]);
+
+export const formalEducationLevel = pgEnum("formal_education_level", [
+  "bachelor",
+  "master",
+  "doctorate",
+  "postdoctoral",
+  "none",
+  "other",
+]);
+
+export const availability = pgEnum("availability", [
+  "full_time",
+  "part_time",
+  "freelance",
+]);
+
+export const skillLevel = pgEnum("skill_level", [
+  "beginner",
+  "intermediate",
+  "advanced",
+  "expert",
+]);
+
+export const category = pgTable("category", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  name: text("name").notNull(),
+  description: text("description"),
+
+  createdAt,
+  updatedAt,
+});
+
+export const application = pgTable(
+  "application",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+
+    firstName: text("first_name").notNull(),
+    lastName: text("last_name").notNull(),
+    email: text("email").notNull().unique(),
+    phoneNumber: text("phone_number"),
+
+    birthYear: integer("birth_year"),
+
+    countryOfOrigin: uuid("country_of_origin").references(() => country.id, {
+      onDelete: "set null",
+    }),
+    countryOfResidence: uuid("country_of_residence").references(
+      () => country.id,
+      { onDelete: "set null" },
+    ),
+    timeZone: text("time_zone"),
+    city: text("city"),
+
+    currentJobStatus: jobStatus("current_job_status"),
+    highestFormalEducationLevel: formalEducationLevel(
+      "highest_formal_education_level",
+    ),
+
+    availability: availability("availability"),
+    hoursPerWeek: integer("hours_per_week"),
+    availableFrom: date("available_from"),
+
+    resumeUrl: text("resume_url"),
+    videoUrl: text("video_url"),
+
+    expectedSalary: numeric("expected_salary", {
+      mode: "number",
+      precision: 10,
+      scale: 2,
+    }), // in USD
+
+    status: text("status").default("active"),
+    archivedAt: timestamp("archived_at"),
+
+    source: text("source"),
+    notes: text("notes"),
+
+    category: uuid("category_id")
+      .notNull()
+      .references(() => category.id, { onDelete: "cascade" }),
+
+    tags: text("tags").array().default([]),
+
+    availableIn: integer("available_in").default(0),
+
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    emailIdx: index("application_email_idx").on(table.email),
+  }),
+);
+
+export const tagSuggestion = pgTable("tag_suggestion", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  value: text("value").notNull(),
+
+  createdAt,
+  updatedAt,
+});
+
+export const languageProficiency = pgEnum("language_proficiency", [
+  "beginner",
+  "intermediate",
+  "advanced",
+  "native",
+]);
+
+export const language = pgTable("language", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => application.id, { onDelete: "cascade" }),
+
+  name: text("name").notNull(),
+  proficiency: languageProficiency("proficiency").notNull(),
+
+  createdAt,
+  updatedAt,
+});
+
+export const socialPlatform = pgEnum("social_platform", [
+  "linkedin",
+  "github",
+  "twitter",
+  "facebook",
+  "instagram",
+  "youtube",
+]);
+
+export const social = pgTable("social", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => application.id, { onDelete: "cascade" }),
+  platform: socialPlatform("platform").notNull(),
+  url: text("url").notNull(),
+
+  createdAt,
+  updatedAt,
+});
+
+export const skill = pgTable("skill", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  name: text("name").notNull(),
+
+  institution: text("institution"),
+  selfTaught: boolean("self_taught"),
+
+  level: skillLevel("level"),
+  totalExperience: integer("total_experience"),
+  startYear: integer("start_year"),
+
+  tags: text("tags").array().default([]),
+
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => application.id, { onDelete: "cascade" }),
+
+  createdAt,
+  updatedAt,
+});
+
+export const experience = pgTable("experience", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  company: text("company"),
+  position: text("position"),
+  description: text("description"),
+
+  startYear: integer("start_year"),
+  endYear: integer("end_year"),
+
+  links: text("links").array().default([]),
+  achievements: text("achievements").array().default([]),
+  isCurrent: boolean("is_current").default(false).notNull(),
+
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => application.id, { onDelete: "cascade" }),
+
+  createdAt,
+  updatedAt,
+});
+
+export const experienceCategory = pgTable("experience_category", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  experienceId: uuid("experience_id")
+    .notNull()
+    .references(() => experience.id, { onDelete: "cascade" }),
+  categoryId: uuid("category_id")
+    .notNull()
+    .references(() => category.id, { onDelete: "cascade" }),
+
+  createdAt,
+  updatedAt,
+});
+
+export const skillExperience = pgTable("skill_experience", {
+  id: uuid("id").primaryKey().defaultRandom(),
+
+  skillId: uuid("skill_id")
+    .notNull()
+    .references(() => skill.id, { onDelete: "cascade" }),
+  experienceId: uuid("experience_id")
+    .notNull()
+    .references(() => experience.id, { onDelete: "cascade" }),
+  applicationId: uuid("application_id")
+    .notNull()
+    .references(() => application.id, { onDelete: "cascade" }),
+
+  createdAt,
+  updatedAt,
+});
+
+export const countryRelations = relations(country, ({ many }) => ({
+  applications: many(application),
+}));
+
+export const applicationRelations = relations(application, ({ one, many }) => ({
+  category: one(category, {
+    fields: [application.category],
+    references: [category.id],
+  }),
+  countryOfOrigin: one(country, {
+    fields: [application.countryOfOrigin],
+    references: [country.id],
+  }),
+  countryOfResidence: one(country, {
+    fields: [application.countryOfResidence],
+    references: [country.id],
+  }),
+  skills: many(skill),
+  experiences: many(experience),
+  socials: many(social),
+  languages: many(language),
+}));
+
+export const languageRelations = relations(language, ({ one }) => ({
+  application: one(application, {
+    fields: [language.applicationId],
+    references: [application.id],
+  }),
+}));
+
+export const skillRelations = relations(skill, ({ one, many }) => ({
+  application: one(application, {
+    fields: [skill.applicationId],
+    references: [application.id],
+  }),
+  experiences: many(skillExperience),
+}));
+
+export const experienceRelations = relations(experience, ({ one, many }) => ({
+  application: one(application, {
+    fields: [experience.applicationId],
+    references: [application.id],
+  }),
+  skills: many(skillExperience),
+  categories: many(experienceCategory),
+}));
+
+export const skillExperienceRelations = relations(
+  skillExperience,
+  ({ one }) => ({
+    skill: one(skill, {
+      fields: [skillExperience.skillId],
+      references: [skill.id],
+    }),
+    experience: one(experience, {
+      fields: [skillExperience.experienceId],
+      references: [experience.id],
+    }),
+    application: one(application, {
+      fields: [skillExperience.applicationId],
+      references: [application.id],
+    }),
+  }),
+);
+
+export const experienceCategoryRelations = relations(
+  experienceCategory,
+  ({ one }) => ({
+    experience: one(experience, {
+      fields: [experienceCategory.experienceId],
+      references: [experience.id],
+    }),
+    category: one(category, {
+      fields: [experienceCategory.categoryId],
+      references: [category.id],
+    }),
+  }),
+);
+
+export const categoryRelations = relations(category, ({ many }) => ({
+  experiences: many(experienceCategory),
+}));
 
 export const organizationRelations = relations(organization, ({ many }) => ({
   members: many(member),
@@ -148,74 +478,8 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
 }));
 
 export const userRelations = relations(user, ({ many }) => ({
-  templates: many(template),
   account: many(account),
   session: many(session),
   members: many(member),
   invitations: many(invitation),
-}));
-
-export const template = pgTable("template", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-
-  name: text("name").notNull(),
-
-  description: text("description"),
-  content: text("content").notNull(),
-
-  userId: text("user_id").references(() => user.id, { onDelete: "cascade" }),
-
-  createdAt,
-  updatedAt,
-});
-
-export const templatePage = pgTable("template_page", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-
-  templateId: uuid("template_id")
-    .notNull()
-    .references(() => template.id, { onDelete: "cascade" }),
-
-  name: text("name").notNull(),
-  slug: text("slug").notNull(),
-  description: text("description"),
-  content: text("content").notNull(),
-
-  createdAt,
-  updatedAt,
-});
-
-export const templateSection = pgTable("template_section", {
-  id: uuid("id").primaryKey().defaultRandom().notNull(),
-
-  name: text("name").notNull(),
-  description: text("description"),
-  pageId: uuid("page_id")
-    .notNull()
-    .references(() => templatePage.id, { onDelete: "cascade" }),
-
-  createdAt,
-  updatedAt,
-});
-
-export const templatePageRelations = relations(templatePage, ({ one }) => ({
-  template: one(template, {
-    fields: [templatePage.templateId],
-    references: [template.id],
-  }),
-}));
-
-export const templateSectionRelations = relations(
-  templateSection,
-  ({ one }) => ({
-    page: one(templatePage, {
-      fields: [templateSection.pageId],
-      references: [templatePage.id],
-    }),
-  }),
-);
-
-export const templateRelations = relations(template, ({ one, many }) => ({
-  pages: many(templatePage),
-  user: one(user, { fields: [template.userId], references: [user.id] }),
 }));
