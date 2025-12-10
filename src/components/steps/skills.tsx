@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import {
   Field,
@@ -19,7 +19,6 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { X, Plus } from "lucide-react";
-import { cn } from "@/lib/utils";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 import { getTagSuggestions } from "@/lib/tag-suggestions";
 
@@ -31,7 +30,6 @@ const skillLevels = [
 ];
 
 function SkillRow({
-  field,
   index,
   control,
   watch,
@@ -45,7 +43,8 @@ function SkillRow({
   setValue: ReturnType<typeof useFormContext<ApplicationFormData>>["setValue"];
   remove: (index: number) => void;
 }) {
-  const tags = watch(`skills.${index}.tags`) ?? [];
+  const tagsWatch = watch(`skills.${index}.tags`);
+  const tags = useMemo(() => tagsWatch ?? [], [tagsWatch]);
   const [tagInput, setTagInput] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -54,6 +53,9 @@ function SkillRow({
 
   // Normalize tag to lowercase
   const normalizeTag = (tag: string) => tag.trim().toLowerCase();
+
+  // Memoize normalized tags to avoid dependency issues
+  const normalizedTags = useMemo(() => tags.map(normalizeTag), [tags]);
 
   // Fetch suggestions based on input
   const fetchSuggestions = useCallback(
@@ -64,8 +66,6 @@ function SkillRow({
         return;
       }
 
-      const normalizedInput = normalizeTag(input);
-      const normalizedTags = tags.map(normalizeTag);
       const filtered = getTagSuggestions(input)
         .map((tag: string) => normalizeTag(tag))
         .filter((tag: string) => !normalizedTags.includes(tag));
@@ -73,7 +73,7 @@ function SkillRow({
       setSuggestions(filtered);
       setShowSuggestions(filtered.length > 0 || input.trim().length > 0);
     },
-    [tags],
+    [normalizedTags],
   );
 
   // Handle click outside to close suggestions

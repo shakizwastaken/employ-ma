@@ -47,12 +47,12 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
       });
 
       if (result.error) {
-        setError(result.error.message || "Failed to create account");
+        setError(result.error.message ?? "Failed to create account");
       } else {
         router.push("/");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setIsLoading(false);
@@ -72,7 +72,7 @@ export function SignupForm({ ...props }: React.ComponentProps<typeof Card>) {
         setError("Failed to sign up with GitHub");
         setIsLoading(false);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to sign up with GitHub");
       setIsLoading(false);
     }

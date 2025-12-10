@@ -62,10 +62,11 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
     const saved = localStorage.getItem("application-form-data");
     if (saved) {
       try {
-        const data = JSON.parse(saved);
+        const data = JSON.parse(saved) as Partial<ApplicationFormData>;
         Object.keys(data).forEach((key) => {
-          if (data[key] !== undefined && data[key] !== null) {
-            form.setValue(key as keyof ApplicationFormData, data[key]);
+          const value = data[key as keyof ApplicationFormData];
+          if (value !== undefined && value !== null) {
+            form.setValue(key as keyof ApplicationFormData, value);
           }
         });
       } catch (e) {

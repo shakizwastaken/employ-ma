@@ -7,7 +7,6 @@ import {
   numeric,
   pgEnum,
   pgTable,
-  pgTableCreator,
   text,
   timestamp,
   uuid,

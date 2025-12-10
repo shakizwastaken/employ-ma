@@ -80,8 +80,8 @@ export const applicationRouter = createTRPCRouter({
               ? new Date(input.availableFrom).toISOString().split("T")[0]
               : null,
             expectedSalary: input.expectedSalary,
-            resumeUrl: input.resumeUrl || null,
-            videoUrl: input.videoUrl || null,
+            resumeUrl: input.resumeUrl ?? null,
+            videoUrl: input.videoUrl ?? null,
             notes: input.notes ?? null,
             category: input.categoryId,
             status: "active",
@@ -136,10 +136,9 @@ export const applicationRouter = createTRPCRouter({
             selfTaught: skillData.selfTaught ?? null,
           }));
 
-          const insertedSkills = await tx
+          await tx
             .insert(skill)
-            .values(skillInserts)
-            .returning();
+            .values(skillInserts);
 
           // Note: skillExperience mapping would go here if needed in the future
         }
@@ -163,10 +162,10 @@ export const applicationRouter = createTRPCRouter({
             .values(experienceInserts)
             .returning();
 
-          // Insert experience categories (many-to-many)
-          for (let i = 0; i < insertedExperiences.length; i++) {
-            const exp = input.experiences[i];
-            if (exp && exp.categoryIds && exp.categoryIds.length > 0) {
+              // Insert experience categories (many-to-many)
+              for (let i = 0; i < insertedExperiences.length; i++) {
+                const exp = input.experiences[i];
+                if (exp?.categoryIds?.length) {
               await tx.insert(experienceCategory).values(
                 exp.categoryIds.map((categoryId) => ({
                   experienceId: insertedExperiences[i]!.id,

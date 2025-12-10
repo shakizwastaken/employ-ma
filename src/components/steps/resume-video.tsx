@@ -10,7 +10,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 
 export function Step9ResumeVideo() {
@@ -37,7 +36,7 @@ export function Step9ResumeVideo() {
         throw new Error("Upload failed");
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as { url: string };
       setValue("resumeUrl", data.url);
     } catch (error) {
       console.error("Upload error:", error);

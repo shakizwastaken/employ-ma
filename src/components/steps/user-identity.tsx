@@ -35,18 +35,15 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
     }
   }, [initialEmail, setValue]);
 
-  const handleEmailBlur = () => {
-    if (email && email.includes("@")) {
-      emailQuery.refetch();
-    }
-  };
+  const handleEmailBlur = () =>
+    email?.includes("@") && void emailQuery.refetch();
 
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-semibold">User Identity</h2>
         <p className="text-muted-foreground">
-          Let's start with your basic information
+          Let&apos;s start with your basic information
         </p>
       </div>
 
@@ -107,7 +104,7 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
                 id="email"
                 type="email"
                 value={field.value ?? ""}
-                onBlur={(e) => {
+                onBlur={() => {
                   field.onBlur();
                   handleEmailBlur();
                 }}

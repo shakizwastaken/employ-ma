@@ -55,7 +55,7 @@ export function Step3PersonalProfile() {
 
   // Get timezones for selected country
   const timezones = useMemo(() => {
-    if (!countryOfResidence || countryOfResidence.length !== 2) {
+    if (!countryOfResidence?.length || countryOfResidence.length !== 2) {
       return [];
     }
     return getTimezonesForCountry(countryOfResidence);
@@ -63,7 +63,7 @@ export function Step3PersonalProfile() {
 
   // Auto-set timezone when country changes
   useEffect(() => {
-    if (countryOfResidence && countryOfResidence.length === 2 && !timeZone) {
+    if (countryOfResidence?.length === 2 && !timeZone) {
       const defaultTz = getDefaultTimezoneForCountry(countryOfResidence);
       setValue("timeZone", defaultTz);
     }
@@ -74,7 +74,7 @@ export function Step3PersonalProfile() {
       <div>
         <h2 className="text-2xl font-semibold">Personal Profile</h2>
         <p className="text-muted-foreground">
-          Tell us where you're located and some personal details
+          Tell us where you&apos;re located and some personal details
         </p>
       </div>
 

@@ -24,7 +24,6 @@ import { api } from "@/trpc/react";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 
 function ExperienceRow({
-  field,
   index,
   control,
   watch,

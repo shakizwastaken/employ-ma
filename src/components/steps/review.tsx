@@ -31,7 +31,7 @@ export function Step10Review({
   const countries = useMemo(() => getAllCountries(), []);
 
   // Use getValues() for non-reactive read
-  const formData = getValues() as ApplicationFormData;
+  const formData = getValues();
 
   const getCountryName = (code?: string) => {
     if (!code) return "Not provided";

@@ -34,7 +34,7 @@ export function Step6Availability() {
       <div>
         <h2 className="text-2xl font-semibold">Availability & Compensation</h2>
         <p className="text-muted-foreground">
-          Tell us when you're available and your compensation expectations
+          Tell us when you&apos;re available and your compensation expectations
         </p>
       </div>
 

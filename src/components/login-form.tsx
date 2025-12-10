@@ -43,12 +43,12 @@ export function LoginForm({
       });
 
       if (result.error) {
-        setError(result.error.message || "Failed to sign in");
+        setError(result.error.message ?? "Failed to sign in");
       } else {
         router.push("/");
         router.refresh();
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred");
     } finally {
       setIsLoading(false);
@@ -68,7 +68,7 @@ export function LoginForm({
         setError("Failed to sign in with GitHub");
         setIsLoading(false);
       }
-    } catch (err) {
+    } catch {
       setError("Failed to sign in with GitHub");
       setIsLoading(false);
     }
