@@ -52,6 +52,9 @@ function SkillRow({
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Normalize tag to lowercase
+  const normalizeTag = (tag: string) => tag.trim().toLowerCase();
+
   // Fetch suggestions based on input
   const fetchSuggestions = useCallback(
     (input: string) => {
@@ -61,9 +64,12 @@ function SkillRow({
         return;
       }
 
-      const filtered = getTagSuggestions(input).filter(
-        (tag: string) => !tags.includes(tag),
-      );
+      const normalizedInput = normalizeTag(input);
+      const normalizedTags = tags.map(normalizeTag);
+      const filtered = getTagSuggestions(input)
+        .map((tag: string) => normalizeTag(tag))
+        .filter((tag: string) => !normalizedTags.includes(tag));
+
       setSuggestions(filtered);
       setShowSuggestions(filtered.length > 0 || input.trim().length > 0);
     },
@@ -95,25 +101,31 @@ function SkillRow({
   }, []);
 
   const handleAddTag = (tagToAdd?: string) => {
-    const tag = tagToAdd ?? tagInput.trim();
-    if (tag && !tags.includes(tag)) {
-      setValue(`skills.${index}.tags`, [...tags, tag]);
-      setTagInput("");
-      setShowSuggestions(false);
-      setSuggestions([]);
+    const tag = normalizeTag(tagToAdd ?? tagInput);
+    if (tag) {
+      const normalizedTags = tags.map(normalizeTag);
+      if (!normalizedTags.includes(tag)) {
+        setValue(`skills.${index}.tags`, [...tags, tag]);
+        setTagInput("");
+        setShowSuggestions(false);
+        setSuggestions([]);
+      }
     }
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
+    const normalizedToRemove = normalizeTag(tagToRemove);
     setValue(
       `skills.${index}.tags`,
-      tags.filter((tag: string) => tag !== tagToRemove),
+      tags.filter((tag: string) => normalizeTag(tag) !== normalizedToRemove),
     );
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setTagInput(value);
+    // Convert input to lowercase as user types
+    const lowerValue = value.toLowerCase();
+    setTagInput(lowerValue);
 
     // Debounce the suggestions fetch
     if (debounceTimerRef.current) {
@@ -121,7 +133,7 @@ function SkillRow({
     }
 
     debounceTimerRef.current = setTimeout(() => {
-      fetchSuggestions(value);
+      fetchSuggestions(lowerValue);
     }, 150);
   };
 
