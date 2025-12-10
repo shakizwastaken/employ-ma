@@ -221,44 +221,55 @@ function SkillRow({
           </div>
 
           <Controller
-            name={`skills.${index}.institution`}
+            name={`skills.${index}.selfTaught`}
             control={control}
-            render={({ field: controllerField, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>Institution</FieldLabel>
-                <Input
-                  {...controllerField}
-                  placeholder="e.g., University name"
-                  value={controllerField.value ?? ""}
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
+            render={({ field: controllerField }) => {
+              const isSelfTaught = controllerField.value ?? false;
+              return (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`selfTaught-${index}`}
+                    checked={isSelfTaught}
+                    onCheckedChange={(checked) => {
+                      controllerField.onChange(!!checked);
+                      // Clear institution when self-taught is checked
+                      if (checked) {
+                        setValue(`skills.${index}.institution`, "");
+                      }
+                    }}
+                  />
+                  <label
+                    htmlFor={`selfTaught-${index}`}
+                    className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Self-taught
+                  </label>
+                </div>
+              );
+            }}
           />
 
           <Controller
-            name={`skills.${index}.selfTaught`}
+            name={`skills.${index}.institution`}
             control={control}
-            render={({ field: controllerField }) => (
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id={`selfTaught-${index}`}
-                  checked={controllerField.value ?? false}
-                  onCheckedChange={(checked) => {
-                    controllerField.onChange(!!checked);
-                  }}
-                />
-                <label
-                  htmlFor={`selfTaught-${index}`}
-                  className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Self-taught
-                </label>
-              </div>
-            )}
+            render={({ field: controllerField, fieldState }) => {
+              const isSelfTaught = watch(`skills.${index}.selfTaught`) ?? false;
+              return (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>Institution</FieldLabel>
+                  <Input
+                    {...controllerField}
+                    placeholder="e.g., University name"
+                    value={controllerField.value ?? ""}
+                    disabled={isSelfTaught}
+                    aria-invalid={fieldState.invalid}
+                  />
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              );
+            }}
           />
         </div>
 
