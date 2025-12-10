@@ -15,10 +15,12 @@ import {
 
 const createdAt = timestamp("created_at")
   .$defaultFn(() => /*@__PURE__*/ new Date())
-  .notNull();
+  .notNull()
+  .defaultNow();
 const updatedAt = timestamp("updated_at")
   .$onUpdate(() => /*@__PURE__*/ new Date())
-  .notNull();
+  .notNull()
+  .defaultNow();
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -134,16 +136,6 @@ export const invitation = pgTable("invitation", {
   updatedAt,
 });
 
-export const country = pgTable("country", {
-  id: uuid("id").primaryKey().defaultRandom(),
-
-  name: text("name").notNull(),
-  code: text("code").notNull(),
-
-  createdAt,
-  updatedAt,
-});
-
 export const jobStatus = pgEnum("current_job_status", [
   "employed",
   "unemployed",
@@ -197,14 +189,9 @@ export const application = pgTable(
 
     birthYear: integer("birth_year"),
 
-    countryOfOrigin: uuid("country_of_origin").references(() => country.id, {
-      onDelete: "set null",
-    }),
-    countryOfResidence: uuid("country_of_residence").references(
-      () => country.id,
-      { onDelete: "set null" },
-    ),
-    timeZone: text("time_zone"),
+    countryOfOrigin: text("country_of_origin"), // ISO 3166-1 alpha-2 code (e.g., "US", "MA")
+    countryOfResidence: text("country_of_residence").notNull(), // ISO 3166-1 alpha-2 code
+    timeZone: text("time_zone"), // IANA timezone name (e.g., "America/New_York")
     city: text("city"),
 
     currentJobStatus: jobStatus("current_job_status"),
@@ -373,22 +360,10 @@ export const skillExperience = pgTable("skill_experience", {
   updatedAt,
 });
 
-export const countryRelations = relations(country, ({ many }) => ({
-  applications: many(application),
-}));
-
 export const applicationRelations = relations(application, ({ one, many }) => ({
   category: one(category, {
     fields: [application.category],
     references: [category.id],
-  }),
-  countryOfOrigin: one(country, {
-    fields: [application.countryOfOrigin],
-    references: [country.id],
-  }),
-  countryOfResidence: one(country, {
-    fields: [application.countryOfResidence],
-    references: [country.id],
   }),
   skills: many(skill),
   experiences: many(experience),

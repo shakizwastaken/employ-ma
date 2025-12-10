@@ -66,6 +66,7 @@ export function Step5SocialProfiles() {
                 id="linkedinUrl"
                 type="url"
                 placeholder="https://linkedin.com/in/yourprofile"
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -128,6 +129,7 @@ export function Step5SocialProfiles() {
                           {...controllerField}
                           type="url"
                           placeholder="https://..."
+                          value={controllerField.value ?? ""}
                           aria-invalid={fieldState.invalid}
                         />
                         {fieldState.invalid && (

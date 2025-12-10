@@ -6,7 +6,6 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
   application,
   category,
-  country,
   experience,
   experienceCategory,
   language,
@@ -15,18 +14,8 @@ import {
   tagSuggestion,
 } from "@/server/db/schema";
 import { applicationFormSchema } from "@/server/api/validators/application";
-import {
-  getDefaultTimezoneForCountry,
-  getTimezonesForCountry,
-} from "@/lib/form-utils";
 
 export const applicationRouter = createTRPCRouter({
-  // Get all countries
-  getCountries: publicProcedure.query(async ({ ctx }) => {
-    const countries = await ctx.db.select().from(country).orderBy(country.name);
-    return countries;
-  }),
-
   // Get all categories
   getCategories: publicProcedure.query(async ({ ctx }) => {
     const categories = await ctx.db
@@ -71,25 +60,6 @@ export const applicationRouter = createTRPCRouter({
         .limit(1);
 
       return { isUnique: existing.length === 0 };
-    }),
-
-  // Get timezones for a country
-  getTimezonesForCountry: publicProcedure
-    .input(z.object({ countryCode: z.string() }))
-    .query(({ input }) => {
-      const timezones = getTimezonesForCountry(input.countryCode);
-      return timezones.map((tz) => ({
-        timezone: tz.timezone,
-        utcOffset: tz.utcOffset,
-        utcOffsetStr: tz.utcOffsetStr,
-      }));
-    }),
-
-  // Get default timezone for a country
-  getDefaultTimezone: publicProcedure
-    .input(z.object({ countryCode: z.string() }))
-    .query(({ input }) => {
-      return getDefaultTimezoneForCountry(input.countryCode);
     }),
 
   // Submit application

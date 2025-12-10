@@ -10,8 +10,10 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo } from "react";
 import { api } from "@/trpc/react";
 import type { ApplicationFormData } from "@/server/api/validators/application";
+import { getAllCountries } from "@/lib/form-utils";
 
 interface Step10ReviewProps {
   onEditStep: (step: number) => void;
@@ -25,15 +27,18 @@ export function Step10Review({
   isSubmitting,
 }: Step10ReviewProps) {
   const { getValues, control } = useFormContext<ApplicationFormData>();
-  const { data: countries } = api.application.getCountries.useQuery();
   const { data: categories } = api.application.getCategories.useQuery();
+  const countries = useMemo(() => getAllCountries(), []);
 
   // Use getValues() for non-reactive read
   const formData = getValues() as ApplicationFormData;
 
-  const getCountryName = (id?: string) => {
-    if (!id) return "Not provided";
-    return countries?.find((c) => c.id === id)?.name ?? "Unknown";
+  const getCountryName = (code?: string) => {
+    if (!code) return "Not provided";
+    return (
+      countries.find((c: { name: string; code: string }) => c.code === code)
+        ?.name ?? code
+    );
   };
 
   const getCategoryName = (id?: string) => {
@@ -64,6 +69,7 @@ export function Step10Review({
                 id="notes"
                 placeholder="Any additional information you'd like to share..."
                 rows={4}
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -147,12 +153,12 @@ export function Step10Review({
           <CardContent className="space-y-1 text-sm">
             <p>
               <strong>Residence:</strong>{" "}
-              {getCountryName(String(formData.countryOfResidence))}
+              {getCountryName(formData.countryOfResidence)}
             </p>
             <p>
               <strong>Origin:</strong>{" "}
               {formData.countryOfOrigin
-                ? getCountryName(String(formData.countryOfOrigin))
+                ? getCountryName(formData.countryOfOrigin)
                 : "Not provided"}
             </p>
             <p>

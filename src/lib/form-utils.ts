@@ -1,14 +1,26 @@
-// @ts-expect-error - country-timezones doesn't have type definitions
-import { getTimeZonesForCountry } from "country-timezones";
+import * as ct from "countries-and-timezones";
+
+/**
+ * Get all countries from the library
+ */
+export function getAllCountries() {
+  const allCountries = ct.getAllCountries();
+  return Object.values(allCountries)
+    .map((country) => ({
+      id: country.id, // ISO 3166-1 alpha-2 code
+      code: country.id, // Same as id for consistency
+      name: country.name,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
 
 /**
  * Get default timezone for a country code
  */
 export function getDefaultTimezoneForCountry(countryCode: string): string {
-  const timezones = getTimeZonesForCountry(countryCode);
-  if (timezones.length > 0) {
-    // Return the first timezone (usually the primary one)
-    return timezones[0]?.timezone ?? "UTC";
+  const countryData = ct.getCountry(countryCode.toUpperCase());
+  if (countryData?.timezones && countryData.timezones.length > 0) {
+    return countryData.timezones[0] ?? "UTC";
   }
   return "UTC";
 }
@@ -21,7 +33,30 @@ export function getTimezonesForCountry(countryCode: string): Array<{
   utcOffset: number;
   utcOffsetStr: string;
 }> {
-  return getTimeZonesForCountry(countryCode);
+  const countryData = ct.getCountry(countryCode.toUpperCase());
+  if (!countryData?.timezones) {
+    return [];
+  }
+
+  return countryData.timezones.map((tzName) => {
+    // Calculate UTC offset using Intl API
+    const now = new Date();
+    const utcDate = new Date(now.toLocaleString("en-US", { timeZone: "UTC" }));
+    const tzDate = new Date(now.toLocaleString("en-US", { timeZone: tzName }));
+    const offsetMinutes = (tzDate.getTime() - utcDate.getTime()) / (1000 * 60);
+
+    // Format offset string
+    const hours = Math.floor(Math.abs(offsetMinutes) / 60);
+    const minutes = Math.abs(offsetMinutes) % 60;
+    const sign = offsetMinutes >= 0 ? "+" : "-";
+    const offsetStr = `${sign}${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+
+    return {
+      timezone: tzName,
+      utcOffset: offsetMinutes,
+      utcOffsetStr: offsetStr,
+    };
+  });
 }
 
 /**

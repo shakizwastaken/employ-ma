@@ -61,9 +61,9 @@ export const step2Schema = z.object({
 
 // Step 3: Personal Profile
 export const step3Schema = z.object({
-  countryOfResidence: z.string().uuid("Country of residence is required"),
+  countryOfResidence: z.string().length(2, "Country of residence is required"), // ISO 3166-1 alpha-2 code
   timeZone: z.string().min(1, "Time zone is required"),
-  countryOfOrigin: z.string().uuid().optional(),
+  countryOfOrigin: z.string().length(2).optional(),
   city: z.string().optional(),
   birthYear: z
     .number()

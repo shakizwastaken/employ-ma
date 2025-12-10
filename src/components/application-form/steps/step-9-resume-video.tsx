@@ -89,6 +89,7 @@ export function Step9ResumeVideo() {
                 type="url"
                 placeholder="Or paste resume URL here"
                 className="mt-2"
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -107,6 +108,7 @@ export function Step9ResumeVideo() {
                 id="videoUrl"
                 type="url"
                 placeholder="https://youtube.com/watch?v=..."
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               <FieldDescription>

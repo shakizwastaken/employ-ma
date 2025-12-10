@@ -62,6 +62,7 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
               <Input
                 {...field}
                 id="firstName"
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -80,6 +81,7 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
               <Input
                 {...field}
                 id="lastName"
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
@@ -104,6 +106,7 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
                 {...field}
                 id="email"
                 type="email"
+                value={field.value ?? ""}
                 onBlur={(e) => {
                   field.onBlur();
                   handleEmailBlur();
@@ -138,11 +141,12 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
                 {...field}
                 id="phoneNumber"
                 type="tel"
-                placeholder="+1 (555) 123-4567"
+                placeholder="+212 (00) 000-0000"
+                value={field.value ?? ""}
                 aria-invalid={fieldState.invalid}
               />
               <FieldDescription>
-                Please include country code (e.g., +1 for USA)
+                Please include country code (e.g., +212 for Morocco)
               </FieldDescription>
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>

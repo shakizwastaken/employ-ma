@@ -93,6 +93,7 @@ function ExperienceRow({
                   <Input
                     {...controllerField}
                     placeholder="Company name"
+                    value={controllerField.value ?? ""}
                     aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && (
@@ -111,6 +112,7 @@ function ExperienceRow({
                   <Input
                     {...controllerField}
                     placeholder="Job title"
+                    value={controllerField.value ?? ""}
                     aria-invalid={fieldState.invalid}
                   />
                   {fieldState.invalid && (
@@ -131,6 +133,7 @@ function ExperienceRow({
                   {...controllerField}
                   placeholder="Describe your role and responsibilities"
                   rows={4}
+                  value={controllerField.value ?? ""}
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && (

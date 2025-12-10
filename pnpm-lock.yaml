@@ -56,6 +56,9 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
+      countries-and-timezones:
+        specifier: ^3.8.0
+        version: 3.8.0
       country-timezones:
         specifier: ^0.3.0
         version: 0.3.0
@@ -1674,6 +1677,10 @@ packages:
   copy-anything@4.0.5:
     resolution: {integrity: sha512-7Vv6asjS4gMOuILabD3l739tsaxFQmC+a7pLZm02zyvs8p977bL3zEgq3yDk5rn9B0PbYgIv++jmHcuUab4RhA==}
     engines: {node: '>=18'}
+
+  countries-and-timezones@3.8.0:
+    resolution: {integrity: sha512-+Ze9h5f4dQpUwbzTm0DEkiPiZyim9VHV4/mSnT4zNYJnrnfwsKjAZPtnp7J5VzejCDgySs+2SSc6MDdCnD43GA==}
+    engines: {node: '>=8.x', npm: '>=5.x'}
 
   country-timezones@0.3.0:
     resolution: {integrity: sha512-fv4XhHC0wmI9ooE2ibqdw/7JGoCbDP31LQrrxIaCOe+1DkA7rpDFGYy3T+0CKkrRWUmwvctZxfqxJLn1N+CKlw==}
@@ -4346,6 +4353,8 @@ snapshots:
   copy-anything@4.0.5:
     dependencies:
       is-what: 5.5.0
+
+  countries-and-timezones@3.8.0: {}
 
   country-timezones@0.3.0: {}
 

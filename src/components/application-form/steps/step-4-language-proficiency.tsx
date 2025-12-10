@@ -96,6 +96,7 @@ export function Step4LanguageProficiency() {
                           {...controllerField}
                           disabled={isEnglish}
                           placeholder={isEnglish ? "English" : "e.g., Spanish"}
+                          value={controllerField.value ?? ""}
                           aria-invalid={fieldState.invalid}
                         />
                         {fieldState.invalid && (

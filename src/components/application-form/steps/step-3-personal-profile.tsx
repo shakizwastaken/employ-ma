@@ -16,68 +16,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/trpc/react";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 import {
+  getAllCountries,
   getDefaultTimezoneForCountry,
-  getCountryCodeFromName,
+  getTimezonesForCountry,
 } from "@/lib/form-utils";
 
 export function Step3PersonalProfile() {
-  const {
-    control,
-    setValue,
-    watch,
-  } = useFormContext<ApplicationFormData>();
-
-  const { data: countries } = api.application.getCountries.useQuery();
+  const { control, setValue, watch } = useFormContext<ApplicationFormData>();
 
   const countryOfResidence = watch("countryOfResidence");
   const timeZone = watch("timeZone");
   const countryOfOrigin = watch("countryOfOrigin");
 
-  // Find Morocco country ID for defaults
+  // Get countries from library
+  const countries = useMemo(() => getAllCountries(), []);
+
+  // Find Morocco country code for defaults
   const moroccoCountry = useMemo(
-    () => countries?.find((c) => c.name === "Morocco"),
+    () =>
+      countries.find(
+        (c: { name: string; code: string }) => c.name === "Morocco",
+      ),
     [countries],
   );
 
   // Set defaults on mount
   useEffect(() => {
     if (moroccoCountry && !countryOfResidence) {
-      setValue("countryOfResidence", moroccoCountry.id);
+      setValue("countryOfResidence", moroccoCountry.code);
       setValue("timeZone", "Africa/Casablanca");
     }
     if (moroccoCountry && !countryOfOrigin) {
-      setValue("countryOfOrigin", moroccoCountry.id);
+      setValue("countryOfOrigin", moroccoCountry.code);
     }
   }, [moroccoCountry, countryOfResidence, countryOfOrigin, setValue]);
 
+  // Get timezones for selected country
+  const timezones = useMemo(() => {
+    if (!countryOfResidence || countryOfResidence.length !== 2) {
+      return [];
+    }
+    return getTimezonesForCountry(countryOfResidence);
+  }, [countryOfResidence]);
+
   // Auto-set timezone when country changes
   useEffect(() => {
-    if (countryOfResidence && countries) {
-      const selectedCountry = countries.find(
-        (c) => c.id === countryOfResidence,
-      );
-      if (selectedCountry?.code) {
-        const defaultTz = getDefaultTimezoneForCountry(selectedCountry.code);
-        setValue("timeZone", defaultTz);
-      }
+    if (countryOfResidence && countryOfResidence.length === 2 && !timeZone) {
+      const defaultTz = getDefaultTimezoneForCountry(countryOfResidence);
+      setValue("timeZone", defaultTz);
     }
-  }, [countryOfResidence, countries, setValue]);
-
-  // Get timezones for selected country
-  const selectedCountry = useMemo(
-    () => countries?.find((c) => c.id === countryOfResidence),
-    [countries, countryOfResidence],
-  );
-
-  const countryCode = selectedCountry?.code ?? null;
-
-  const { data: timezones } = api.application.getTimezonesForCountry.useQuery(
-    { countryCode: countryCode ?? "US" },
-    { enabled: !!countryCode },
-  );
+  }, [countryOfResidence, timeZone, setValue]);
 
   return (
     <div className="space-y-6">
@@ -107,16 +97,14 @@ export function Step3PersonalProfile() {
                   <SelectValue placeholder="Select country" />
                 </SelectTrigger>
                 <SelectContent>
-                  {countries?.map((country) => (
-                    <SelectItem key={country.id} value={country.id}>
+                  {countries.map((country: { name: string; code: string }) => (
+                    <SelectItem key={country.code} value={country.code}>
                       {country.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -139,16 +127,14 @@ export function Step3PersonalProfile() {
                   <SelectValue placeholder="Select timezone" />
                 </SelectTrigger>
                 <SelectContent>
-                  {timezones?.map((tz) => (
+                  {timezones.map((tz) => (
                     <SelectItem key={tz.timezone} value={tz.timezone}>
                       {tz.timezone} ({tz.utcOffsetStr})
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -158,7 +144,9 @@ export function Step3PersonalProfile() {
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="countryOfOrigin">Country of Origin</FieldLabel>
+              <FieldLabel htmlFor="countryOfOrigin">
+                Country of Origin
+              </FieldLabel>
               <Select
                 value={field.value ?? ""}
                 onValueChange={(value) => {
@@ -169,16 +157,14 @@ export function Step3PersonalProfile() {
                   <SelectValue placeholder="Select country (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  {countries?.map((country) => (
-                    <SelectItem key={country.id} value={country.id}>
+                  {countries.map((country: { name: string; code: string }) => (
+                    <SelectItem key={country.code} value={country.code}>
                       {country.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -189,10 +175,13 @@ export function Step3PersonalProfile() {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor="city">City</FieldLabel>
-              <Input {...field} id="city" aria-invalid={fieldState.invalid} />
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              <Input
+                {...field}
+                id="city"
+                value={field.value ?? ""}
+                aria-invalid={fieldState.invalid}
+              />
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />
@@ -212,13 +201,13 @@ export function Step3PersonalProfile() {
                 value={field.value ?? ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  field.onChange(value ? Number.parseInt(value, 10) : undefined);
+                  field.onChange(
+                    value ? Number.parseInt(value, 10) : undefined,
+                  );
                 }}
                 aria-invalid={fieldState.invalid}
               />
-              {fieldState.invalid && (
-                <FieldError errors={[fieldState.error]} />
-              )}
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
         />

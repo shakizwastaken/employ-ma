@@ -78,6 +78,7 @@ function SkillRow({
                 <Input
                   {...controllerField}
                   placeholder="e.g., JavaScript"
+                  value={controllerField.value ?? ""}
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && (
@@ -228,6 +229,7 @@ function SkillRow({
                 <Input
                   {...controllerField}
                   placeholder="e.g., University name"
+                  value={controllerField.value ?? ""}
                   aria-invalid={fieldState.invalid}
                 />
                 {fieldState.invalid && (
