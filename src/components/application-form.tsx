@@ -9,16 +9,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/trpc/react";
 import { applicationFormSchema } from "@/server/api/validators/application";
 import type { ApplicationFormData } from "@/server/api/validators/application";
-import { Step1UserIdentity } from "./application-form/steps/step-1-user-identity";
-import { Step2ProfessionalBaseline } from "./application-form/steps/step-2-professional-baseline";
-import { Step3PersonalProfile } from "./application-form/steps/step-3-personal-profile";
-import { Step4LanguageProficiency } from "./application-form/steps/step-4-language-proficiency";
-import { Step5SocialProfiles } from "./application-form/steps/step-5-social-profiles";
-import { Step6Availability } from "./application-form/steps/step-6-availability";
-import { Step7Skills } from "./application-form/steps/step-7-skills";
-import { Step8WorkExperience } from "./application-form/steps/step-8-work-experience";
-import { Step9ResumeVideo } from "./application-form/steps/step-9-resume-video";
-import { Step10Review } from "./application-form/steps/step-10-review";
+import { Step1UserIdentity } from "./steps/user-identity";
+import { Step2ProfessionalBaseline } from "./steps/professional-baseline";
+import { Step3PersonalProfile } from "./steps/personal-profile";
+import { Step4LanguageProficiency } from "./steps/language-proficiency";
+import { Step5SocialProfiles } from "./steps/social-profiles";
+import { Step6Availability } from "./steps/availability";
+import { Step7Skills } from "./steps/skills";
+import { Step8WorkExperience } from "./steps/work-experience";
+import { Step9ResumeVideo } from "./steps/resume-video";
+import { Step10Review } from "./steps/review";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface ApplicationFormProps {
