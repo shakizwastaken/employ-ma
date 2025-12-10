@@ -11,7 +11,6 @@ import {
   language,
   skill,
   social,
-  tagSuggestion,
 } from "@/server/db/schema";
 import { applicationFormSchema } from "@/server/api/validators/application";
 
@@ -24,30 +23,6 @@ export const applicationRouter = createTRPCRouter({
       .orderBy(category.name);
     return categories;
   }),
-
-  // Get tag suggestions
-  getTagSuggestions: publicProcedure
-    .input(
-      z
-        .object({
-          query: z.string().optional(),
-        })
-        .optional(),
-    )
-    .query(async ({ ctx, input }) => {
-      const tags = await ctx.db.select().from(tagSuggestion);
-
-      if (input?.query) {
-        // Simple search - in a real app, you might want full-text search
-        return tags
-          .filter((tag) =>
-            tag.value.toLowerCase().includes(input.query!.toLowerCase()),
-          )
-          .map((tag) => tag.value);
-      }
-
-      return tags.map((tag) => tag.value);
-    }),
 
   // Check if email is unique
   checkEmailUnique: publicProcedure

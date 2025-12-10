@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import {
   Field,
@@ -19,8 +19,9 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { X, Plus } from "lucide-react";
-import { api } from "@/trpc/react";
+import { cn } from "@/lib/utils";
 import type { ApplicationFormData } from "@/server/api/validators/application";
+import { getTagSuggestions } from "@/lib/tag-suggestions";
 
 const skillLevels = [
   { value: "beginner", label: "Beginner" },
@@ -36,7 +37,6 @@ function SkillRow({
   watch,
   setValue,
   remove,
-  tagSuggestions,
 }: {
   field: { id: string };
   index: number;
@@ -44,15 +44,63 @@ function SkillRow({
   watch: ReturnType<typeof useFormContext<ApplicationFormData>>["watch"];
   setValue: ReturnType<typeof useFormContext<ApplicationFormData>>["setValue"];
   remove: (index: number) => void;
-  tagSuggestions?: string[];
 }) {
   const tags = watch(`skills.${index}.tags`) ?? [];
   const [tagInput, setTagInput] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const handleAddTag = () => {
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setValue(`skills.${index}.tags`, [...tags, tagInput.trim()]);
+  // Fetch suggestions based on input
+  const fetchSuggestions = useCallback(
+    (input: string) => {
+      if (!input.trim()) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+        return;
+      }
+
+      const filtered = getTagSuggestions(input).filter(
+        (tag: string) => !tags.includes(tag),
+      );
+      setSuggestions(filtered);
+      setShowSuggestions(filtered.length > 0 || input.trim().length > 0);
+    },
+    [tags],
+  );
+
+  // Handle click outside to close suggestions
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Cleanup debounce timer
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleAddTag = (tagToAdd?: string) => {
+    const tag = tagToAdd ?? tagInput.trim();
+    if (tag && !tags.includes(tag)) {
+      setValue(`skills.${index}.tags`, [...tags, tag]);
       setTagInput("");
+      setShowSuggestions(false);
+      setSuggestions([]);
     }
   };
 
@@ -61,6 +109,24 @@ function SkillRow({
       `skills.${index}.tags`,
       tags.filter((tag: string) => tag !== tagToRemove),
     );
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setTagInput(value);
+
+    // Debounce the suggestions fetch
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      fetchSuggestions(value);
+    }, 150);
+  };
+
+  const handleSelectSuggestion = (tag: string) => {
+    handleAddTag(tag);
   };
 
   return (
@@ -90,7 +156,7 @@ function SkillRow({
 
           <Field>
             <FieldLabel>Tags</FieldLabel>
-            <div className="flex flex-wrap gap-2">
+            <div className="mb-2 flex flex-wrap gap-2">
               {tags.map((tag: string) => (
                 <span
                   key={tag}
@@ -107,29 +173,89 @@ function SkillRow({
                 </span>
               ))}
             </div>
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={(e) => setTagInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAddTag();
-                  }
-                }}
-                placeholder="Add tag"
-                list={`tag-suggestions-${index}`}
-              />
-              <datalist id={`tag-suggestions-${index}`}>
-                {tagSuggestions
-                  ?.filter((tag: string) => !tags.includes(tag))
-                  .map((tag: string) => (
-                    <option key={tag} value={tag} />
-                  ))}
-              </datalist>
-              <Button type="button" variant="outline" onClick={handleAddTag}>
-                Add
-              </Button>
+            <div className="relative z-[100]" ref={containerRef}>
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id={`tag-input-${index}`}
+                    placeholder="Search or add tag..."
+                    value={tagInput}
+                    onChange={handleInputChange}
+                    onFocus={() => {
+                      if (tagInput.trim() || suggestions.length > 0) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && tagInput.trim()) {
+                        e.preventDefault();
+                        handleAddTag();
+                      } else if (e.key === "Tab" && suggestions.length > 0) {
+                        e.preventDefault();
+                        handleAddTag(suggestions[0]);
+                      } else if (e.key === "Escape") {
+                        e.preventDefault();
+                        setShowSuggestions(false);
+                        e.currentTarget.focus();
+                      }
+                    }}
+                    autoComplete="off"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => handleAddTag()}
+                  disabled={!tagInput.trim()}
+                >
+                  Add
+                </Button>
+              </div>
+
+              {/* Suggestions dropdown */}
+              {showSuggestions &&
+                (tagInput.trim() || suggestions.length > 0) && (
+                  <div className="border-border bg-popover text-popover-foreground absolute top-full right-0 left-0 z-[999] mt-1 max-h-60 overflow-y-auto rounded-md border shadow-lg">
+                    {suggestions.length > 0 ? (
+                      <div className="p-1">
+                        {suggestions.map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            className="hover:bg-accent hover:text-accent-foreground flex w-full items-center rounded-sm px-2 py-1.5 text-sm transition-colors outline-none"
+                            onClick={() => handleSelectSuggestion(tag)}
+                            onMouseDown={(e) => {
+                              // Prevent input blur
+                              e.preventDefault();
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    ) : tagInput.trim() ? (
+                      <div className="p-4 text-center">
+                        <p className="text-muted-foreground mb-2 text-sm">
+                          No matching tags found
+                        </p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleAddTag()}
+                        >
+                          Add &quot;{tagInput}&quot;
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center">
+                        <p className="text-muted-foreground text-sm">
+                          Start typing to search for tags...
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
             </div>
           </Field>
 
@@ -295,8 +421,6 @@ export function Step7Skills() {
     name: "skills",
   });
 
-  const { data: tagSuggestions } = api.application.getTagSuggestions.useQuery();
-
   return (
     <div className="space-y-6">
       <div>
@@ -316,7 +440,6 @@ export function Step7Skills() {
             watch={watch}
             setValue={setValue}
             remove={remove}
-            tagSuggestions={tagSuggestions}
           />
         ))}
 
