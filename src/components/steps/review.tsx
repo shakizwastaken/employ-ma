@@ -11,7 +11,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMemo } from "react";
-import { api } from "@/trpc/react";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 import { getAllCountries } from "@/lib/form-utils";
 
@@ -27,7 +26,6 @@ export function Step10Review({
   isSubmitting,
 }: Step10ReviewProps) {
   const { getValues, control } = useFormContext<ApplicationFormData>();
-  const { data: categories } = api.application.getCategories.useQuery();
   const countries = useMemo(() => getAllCountries(), []);
 
   // Use getValues() for non-reactive read
@@ -39,11 +37,6 @@ export function Step10Review({
       countries.find((c: { name: string; code: string }) => c.code === code)
         ?.name ?? code
     );
-  };
-
-  const getCategoryName = (id?: string) => {
-    if (!id) return "Not provided";
-    return categories?.find((c) => c.id === id)?.name ?? "Unknown";
   };
 
   return (
@@ -131,7 +124,7 @@ export function Step10Review({
             </p>
             <p>
               <strong>Category:</strong>{" "}
-              {getCategoryName(String(formData.categoryId))}
+              {formData.category || "Not provided"}
             </p>
           </CardContent>
         </Card>

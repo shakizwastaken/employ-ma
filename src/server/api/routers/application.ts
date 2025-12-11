@@ -5,7 +5,6 @@ import { z } from "zod";
 import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
   application,
-  category,
   experience,
   experienceCategory,
   language,
@@ -15,15 +14,6 @@ import {
 import { applicationFormSchema } from "@/server/api/validators/application";
 
 export const applicationRouter = createTRPCRouter({
-  // Get all categories
-  getCategories: publicProcedure.query(async ({ ctx }) => {
-    const categories = await ctx.db
-      .select()
-      .from(category)
-      .orderBy(category.name);
-    return categories;
-  }),
-
   // Check if email is unique
   checkEmailUnique: publicProcedure
     .input(z.object({ email: z.string().email() }))
@@ -83,7 +73,7 @@ export const applicationRouter = createTRPCRouter({
             resumeUrl: input.resumeUrl ?? null,
             videoUrl: input.videoUrl ?? null,
             notes: input.notes ?? null,
-            category: input.categoryId,
+            category: input.category,
             status: "active",
           })
           .returning();

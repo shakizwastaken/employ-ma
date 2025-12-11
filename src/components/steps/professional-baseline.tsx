@@ -14,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { api } from "@/trpc/react";
 import type { ApplicationFormData } from "@/server/api/validators/application";
+import { ALL_CATEGORY_SUGGESTIONS } from "@/lib/category-suggestions";
 
 const educationLevels = [
   { value: "bachelor", label: "Bachelor's Degree" },
@@ -37,8 +37,6 @@ const jobStatuses = [
 
 export function Step2ProfessionalBaseline() {
   const { control } = useFormContext<ApplicationFormData>();
-
-  const { data: categories } = api.application.getCategories.useQuery();
 
   return (
     <div className="space-y-6">
@@ -112,11 +110,11 @@ export function Step2ProfessionalBaseline() {
         />
 
         <Controller
-          name="categoryId"
+          name="category"
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="categoryId">
+              <FieldLabel htmlFor="category">
                 Category <span className="text-destructive">*</span>
               </FieldLabel>
               <Select
@@ -125,13 +123,13 @@ export function Step2ProfessionalBaseline() {
                   field.onChange(value);
                 }}
               >
-                <SelectTrigger id="categoryId">
+                <SelectTrigger id="category">
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories?.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
+                  {ALL_CATEGORY_SUGGESTIONS.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
                     </SelectItem>
                   ))}
                 </SelectContent>

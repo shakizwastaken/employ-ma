@@ -94,7 +94,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
         fieldsToValidate = [
           "highestFormalEducationLevel",
           "currentJobStatus",
-          "categoryId",
+          "category",
         ];
         break;
       case 3:

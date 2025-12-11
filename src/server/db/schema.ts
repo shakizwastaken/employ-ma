@@ -217,9 +217,7 @@ export const application = pgTable(
     source: text("source"),
     notes: text("notes"),
 
-    category: uuid("category_id")
-      .notNull()
-      .references(() => category.id, { onDelete: "cascade" }),
+    category: text("category").notNull(),
 
     tags: text("tags").array().default([]),
 
@@ -359,11 +357,7 @@ export const skillExperience = pgTable("skill_experience", {
   updatedAt,
 });
 
-export const applicationRelations = relations(application, ({ one, many }) => ({
-  category: one(category, {
-    fields: [application.category],
-    references: [category.id],
-  }),
+export const applicationRelations = relations(application, ({ many }) => ({
   skills: many(skill),
   experiences: many(experience),
   socials: many(social),

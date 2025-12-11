@@ -56,7 +56,7 @@ export const step1Schema = z.object({
 export const step2Schema = z.object({
   highestFormalEducationLevel: formalEducationLevelEnum,
   currentJobStatus: currentJobStatusEnum,
-  categoryId: z.string().uuid("Category is required"),
+  category: z.string().min(1, "Category is required"),
 });
 
 // Step 3: Personal Profile
