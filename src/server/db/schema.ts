@@ -166,16 +166,6 @@ export const skillLevel = pgEnum("skill_level", [
   "expert",
 ]);
 
-export const category = pgTable("category", {
-  id: uuid("id").primaryKey().defaultRandom(),
-
-  name: text("name").notNull(),
-  description: text("description"),
-
-  createdAt,
-  updatedAt,
-});
-
 export const application = pgTable(
   "application",
   {
@@ -316,25 +306,12 @@ export const experience = pgTable("experience", {
 
   links: text("links").array().default([]),
   achievements: text("achievements").array().default([]),
+  categories: text("categories").array().default([]),
   isCurrent: boolean("is_current").default(false).notNull(),
 
   applicationId: uuid("application_id")
     .notNull()
     .references(() => application.id, { onDelete: "cascade" }),
-
-  createdAt,
-  updatedAt,
-});
-
-export const experienceCategory = pgTable("experience_category", {
-  id: uuid("id").primaryKey().defaultRandom(),
-
-  experienceId: uuid("experience_id")
-    .notNull()
-    .references(() => experience.id, { onDelete: "cascade" }),
-  categoryId: uuid("category_id")
-    .notNull()
-    .references(() => category.id, { onDelete: "cascade" }),
 
   createdAt,
   updatedAt,
@@ -385,7 +362,6 @@ export const experienceRelations = relations(experience, ({ one, many }) => ({
     references: [application.id],
   }),
   skills: many(skillExperience),
-  categories: many(experienceCategory),
 }));
 
 export const skillExperienceRelations = relations(
@@ -405,24 +381,6 @@ export const skillExperienceRelations = relations(
     }),
   }),
 );
-
-export const experienceCategoryRelations = relations(
-  experienceCategory,
-  ({ one }) => ({
-    experience: one(experience, {
-      fields: [experienceCategory.experienceId],
-      references: [experience.id],
-    }),
-    category: one(category, {
-      fields: [experienceCategory.categoryId],
-      references: [category.id],
-    }),
-  }),
-);
-
-export const categoryRelations = relations(category, ({ many }) => ({
-  experiences: many(experienceCategory),
-}));
 
 export const organizationRelations = relations(organization, ({ many }) => ({
   members: many(member),

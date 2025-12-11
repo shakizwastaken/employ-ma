@@ -20,7 +20,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { X, Plus } from "lucide-react";
-import { api } from "@/trpc/react";
+import { useMemo } from "react";
+import { getCategorySuggestions } from "@/lib/category-suggestions";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 
 function ExperienceRow({
@@ -29,7 +30,6 @@ function ExperienceRow({
   watch,
   setValue,
   remove,
-  categories,
 }: {
   field: { id: string };
   index: number;
@@ -37,12 +37,13 @@ function ExperienceRow({
   watch: ReturnType<typeof useFormContext<ApplicationFormData>>["watch"];
   setValue: ReturnType<typeof useFormContext<ApplicationFormData>>["setValue"];
   remove: (index: number) => void;
-  categories?: Array<{ id: string; name: string }>;
 }) {
   const isCurrent = watch(`experiences.${index}.isCurrent`) ?? false;
   const links = watch(`experiences.${index}.links`) ?? [];
   const achievements = watch(`experiences.${index}.achievements`) ?? [];
   const categoryIds = watch(`experiences.${index}.categoryIds`) ?? [];
+
+  const categories = useMemo(() => getCategorySuggestions(), []);
 
   const [linkInput, setLinkInput] = useState("");
   const [achievementInput, setAchievementInput] = useState("");
@@ -327,38 +328,35 @@ function ExperienceRow({
               </SelectTrigger>
               <SelectContent>
                 {categories
-                  ?.filter((cat) => !categoryIds.includes(cat.id))
+                  .filter((cat) => !categoryIds.includes(cat))
                   .map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id}>
-                      {cat.name}
+                    <SelectItem key={cat} value={cat}>
+                      {cat}
                     </SelectItem>
                   ))}
               </SelectContent>
             </Select>
             <div className="mt-2 flex flex-wrap gap-2">
-              {categoryIds.map((catId: string) => {
-                const category = categories?.find((c) => c.id === catId);
-                return (
-                  <span
-                    key={catId}
-                    className="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+              {categoryIds.map((catId: string) => (
+                <span
+                  key={catId}
+                  className="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+                >
+                  {catId}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setValue(
+                        `experiences.${index}.categoryIds`,
+                        categoryIds.filter((id: string) => id !== catId),
+                      )
+                    }
+                    className="hover:text-destructive"
                   >
-                    {category?.name}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setValue(
-                          `experiences.${index}.categoryIds`,
-                          categoryIds.filter((id: string) => id !== catId),
-                        )
-                      }
-                      className="hover:text-destructive"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </span>
-                );
-              })}
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              ))}
             </div>
           </Field>
         </div>
@@ -385,8 +383,6 @@ export function Step8WorkExperience() {
     name: "experiences",
   });
 
-  const { data: categories } = api.application.getCategories.useQuery();
-
   return (
     <div className="space-y-6">
       <div>
@@ -406,7 +402,6 @@ export function Step8WorkExperience() {
             watch={watch}
             setValue={setValue}
             remove={remove}
-            categories={categories}
           />
         ))}
 

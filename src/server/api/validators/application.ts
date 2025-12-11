@@ -239,7 +239,7 @@ export const experienceSchema = z
     isCurrent: z.boolean().default(false),
     links: z.array(z.string().url()).default([]),
     achievements: z.array(z.string()).default([]),
-    categoryIds: z.array(z.string().uuid()).default([]),
+    categoryIds: z.array(z.string()).default([]),
   })
   .refine(
     (data) => {
@@ -298,12 +298,11 @@ export const step8Schema = z.object({
 export const step9Schema = z.object({
   resumeUrl: z.string().url().optional().or(z.literal("")),
   videoUrl: z.string().url().optional().or(z.literal("")),
-});
-
-// Step 10: Final Notes
-export const step10Schema = z.object({
   notes: z.string().optional(),
 });
+
+// Step 10: Review (no additional fields)
+export const step10Schema = z.object({});
 
 // Combined form schema for submission
 export const applicationFormSchema = step1Schema

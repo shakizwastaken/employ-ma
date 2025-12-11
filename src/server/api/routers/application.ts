@@ -6,7 +6,6 @@ import { createTRPCRouter, publicProcedure } from "@/server/api/trpc";
 import {
   application,
   experience,
-  experienceCategory,
   language,
   skill,
   social,
@@ -143,25 +142,10 @@ export const applicationRouter = createTRPCRouter({
             isCurrent: exp.isCurrent,
             links: exp.links ?? [],
             achievements: exp.achievements ?? [],
+            categories: exp.categoryIds ?? [],
           }));
 
-          const insertedExperiences = await tx
-            .insert(experience)
-            .values(experienceInserts)
-            .returning();
-
-          // Insert experience categories (many-to-many)
-          for (let i = 0; i < insertedExperiences.length; i++) {
-            const exp = input.experiences[i];
-            if (exp?.categoryIds?.length) {
-              await tx.insert(experienceCategory).values(
-                exp.categoryIds.map((categoryId) => ({
-                  experienceId: insertedExperiences[i]!.id,
-                  categoryId,
-                })),
-              );
-            }
-          }
+          await tx.insert(experience).values(experienceInserts);
         }
 
         return {

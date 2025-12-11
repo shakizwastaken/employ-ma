@@ -10,6 +10,7 @@ import {
   FieldLabel,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 
 export function Step9ResumeVideo() {
@@ -113,6 +114,27 @@ export function Step9ResumeVideo() {
               <FieldDescription>
                 Link to a video introduction (YouTube, Vimeo, etc.)
               </FieldDescription>
+              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+            </Field>
+          )}
+        />
+
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field, fieldState }) => (
+            <Field data-invalid={fieldState.invalid}>
+              <FieldLabel htmlFor="notes">
+                Additional Notes (Optional)
+              </FieldLabel>
+              <Textarea
+                {...field}
+                id="notes"
+                placeholder="Any additional information you'd like to share..."
+                rows={4}
+                value={field.value ?? ""}
+                aria-invalid={fieldState.invalid}
+              />
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}

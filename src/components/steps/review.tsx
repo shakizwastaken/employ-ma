@@ -1,13 +1,6 @@
 "use client";
 
-import { Controller, useFormContext } from "react-hook-form";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field";
-import { Textarea } from "@/components/ui/textarea";
+import { useFormContext } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMemo } from "react";
@@ -25,7 +18,7 @@ export function Step10Review({
   onSubmit,
   isSubmitting,
 }: Step10ReviewProps) {
-  const { getValues, control } = useFormContext<ApplicationFormData>();
+  const { getValues } = useFormContext<ApplicationFormData>();
   const countries = useMemo(() => getAllCountries(), []);
 
   // Use getValues() for non-reactive read
@@ -44,32 +37,9 @@ export function Step10Review({
       <div>
         <h2 className="text-2xl font-semibold">Review & Submit</h2>
         <p className="text-muted-foreground">
-          Review your information and add any final notes
+          Review your information before submitting
         </p>
       </div>
-
-      <FieldGroup>
-        <Controller
-          name="notes"
-          control={control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="notes">
-                Additional Notes (Optional)
-              </FieldLabel>
-              <Textarea
-                {...field}
-                id="notes"
-                placeholder="Any additional information you'd like to share..."
-                rows={4}
-                value={field.value ?? ""}
-                aria-invalid={fieldState.invalid}
-              />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-      </FieldGroup>
 
       <div className="space-y-4">
         <Card>
@@ -389,6 +359,11 @@ export function Step10Review({
             {formData.videoUrl ? (
               <p>
                 <strong>Video:</strong> {String(formData.videoUrl)}
+              </p>
+            ) : null}
+            {formData.notes ? (
+              <p>
+                <strong>Additional Notes:</strong> {String(formData.notes)}
               </p>
             ) : null}
           </CardContent>
