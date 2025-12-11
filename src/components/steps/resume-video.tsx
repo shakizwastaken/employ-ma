@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Controller, useFormContext } from "react-hook-form";
+import { toast } from "sonner";
 import {
   Field,
   FieldDescription,
@@ -23,6 +24,30 @@ export function Step9ResumeVideo() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > maxSize) {
+      toast.error("File too large", {
+        description: "Please upload a file smaller than 10MB.",
+      });
+      e.target.value = ""; // Reset file input
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
+    if (!allowedTypes.includes(file.type)) {
+      toast.error("Invalid file type", {
+        description: "Please upload a PDF, DOC, or DOCX file.",
+      });
+      e.target.value = ""; // Reset file input
+      return;
+    }
+
     setUploading(true);
     try {
       const formData = new FormData();
@@ -34,15 +59,28 @@ export function Step9ResumeVideo() {
       });
 
       if (!response.ok) {
-        throw new Error("Upload failed");
+        const errorData = (await response.json().catch(() => ({}))) as {
+          message?: string;
+        };
+        throw new Error(
+          errorData.message ?? `Upload failed with status ${response.status}`,
+        );
       }
 
       const data = (await response.json()) as { url: string };
       setValue("resumeUrl", data.url);
+      toast.success("Resume uploaded successfully", {
+        description: "Your resume has been uploaded and saved.",
+      });
     } catch (error) {
       console.error("Upload error:", error);
-      // For now, set a placeholder URL
-      // In production, handle error properly
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Failed to upload resume. Please try again.";
+      toast.error("Upload failed", {
+        description: errorMessage,
+      });
     } finally {
       setUploading(false);
     }

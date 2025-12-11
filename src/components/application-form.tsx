@@ -4,11 +4,16 @@ import { useState, useEffect } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/trpc/react";
 import { applicationFormSchema } from "@/server/api/validators/application";
 import type { ApplicationFormData } from "@/server/api/validators/application";
+import {
+  extractFieldPaths,
+  getFirstErrorStep,
+} from "@/lib/error-utils";
 import { Step1UserIdentity } from "./steps/user-identity";
 import { Step2ProfessionalBaseline } from "./steps/professional-baseline";
 import { Step3PersonalProfile } from "./steps/personal-profile";
@@ -46,11 +51,37 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
 
   const submitMutation = api.application.submitApplication.useMutation({
     onSuccess: () => {
+      toast.success("Application submitted successfully!", {
+        description: "Thank you for your application. We'll be in touch soon.",
+      });
       router.push("/?success=true");
     },
     onError: (error) => {
       console.error("Submission error:", error);
-      alert(error.message || "Failed to submit application. Please try again.");
+      
+      // Try to extract Zod errors and navigate to the first error step
+      const zodError = error.data?.zodError;
+      if (zodError) {
+        const fieldPaths = extractFieldPaths(zodError);
+        const errorStep = getFirstErrorStep(fieldPaths);
+        
+        if (errorStep) {
+          setCurrentStep(errorStep);
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          toast.error("Please fix the errors below", {
+            description: "Some fields need attention before submission.",
+          });
+        } else {
+          toast.error("Validation error", {
+            description: error.message || "Please check your form and try again.",
+          });
+        }
+      } else {
+        // Handle other types of errors (network, server, etc.)
+        toast.error("Failed to submit application", {
+          description: error.message || "Please try again later.",
+        });
+      }
     },
     onSettled: () => {
       setIsSubmitting(false);
@@ -71,6 +102,9 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
         });
       } catch (e) {
         console.error("Failed to load saved form data", e);
+        toast.error("Failed to load saved form data", {
+          description: "Your previous form data could not be restored.",
+        });
       }
     }
   }, [form]);
@@ -78,7 +112,18 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
   // Save form data to localStorage on change
   useEffect(() => {
     const subscription = form.watch((value) => {
-      localStorage.setItem("application-form-data", JSON.stringify(value));
+      try {
+        localStorage.setItem("application-form-data", JSON.stringify(value));
+      } catch (e) {
+        // Handle quota exceeded or other localStorage errors
+        if (e instanceof DOMException && e.name === "QuotaExceededError") {
+          toast.warning("Storage limit reached", {
+            description: "Unable to save form progress. Please complete the form soon.",
+          });
+        } else {
+          console.error("Failed to save form data", e);
+        }
+      }
     });
     return () => subscription.unsubscribe();
   }, [form]);
@@ -134,6 +179,16 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
     if (isValid && currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
       window.scrollTo({ top: 0, behavior: "smooth" });
+    } else {
+      // Get form errors to show specific message
+      const errors = form.formState.errors;
+      const errorFields = Object.keys(errors);
+      
+      if (errorFields.length > 0) {
+        toast.error("Please fix the errors before continuing", {
+          description: "Some required fields are missing or invalid.",
+        });
+      }
     }
   };
 
@@ -152,6 +207,53 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
   const handleSubmit = async () => {
     const isValid = await form.trigger();
     if (!isValid) {
+      // Extract errors and navigate to first error step
+      const errors = form.formState.errors;
+      const errorPaths: (string | number)[][] = [];
+      
+      // Convert react-hook-form errors to field paths
+      const processErrors = (
+        obj: Record<string, unknown>,
+        prefix: (string | number)[] = [],
+      ) => {
+        for (const [key, value] of Object.entries(obj)) {
+          const path = [...prefix, key];
+          if (value && typeof value === "object") {
+            if ("message" in value || "type" in value) {
+              // This is an error object (react-hook-form format)
+              errorPaths.push(path);
+            } else if (Array.isArray(value)) {
+              // Handle array errors (e.g., experiences, languages)
+              value.forEach((item, index) => {
+                if (item && typeof item === "object" && !Array.isArray(item)) {
+                  processErrors(item as Record<string, unknown>, [...path, index]);
+                } else if (item) {
+                  // Direct error in array
+                  errorPaths.push([...path, index]);
+                }
+              });
+            } else if (!Array.isArray(value)) {
+              // Nested object - recurse
+              processErrors(value as Record<string, unknown>, path);
+            }
+          }
+        }
+      };
+      
+      processErrors(errors as Record<string, unknown>);
+      
+      const errorStep = getFirstErrorStep(errorPaths);
+      if (errorStep) {
+        setCurrentStep(errorStep);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        toast.error("Please fix the errors below", {
+          description: "Some fields need attention before submission.",
+        });
+      } else {
+        toast.error("Please fix all errors before submitting", {
+          description: "Check the form for missing or invalid fields.",
+        });
+      }
       return;
     }
 
