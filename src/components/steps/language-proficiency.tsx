@@ -62,10 +62,10 @@ export function Step4LanguageProficiency() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Language Proficiency</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-xl sm:text-2xl font-semibold">Language Proficiency</h2>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">
           Tell us about the languages you speak
         </p>
       </div>

@@ -39,10 +39,10 @@ export function Step1UserIdentity({ initialEmail }: Step1UserIdentityProps) {
     email?.includes("@") && void emailQuery.refetch();
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">User Identity</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-xl font-semibold sm:text-2xl">User Identity</h2>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Let&apos;s start with your basic information
         </p>
       </div>

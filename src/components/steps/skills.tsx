@@ -434,10 +434,10 @@ export function Step7Skills() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Skills</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-xl sm:text-2xl font-semibold">Skills</h2>
+        <p className="text-muted-foreground text-sm sm:text-base mt-1">
           List your skills and experience levels
         </p>
       </div>

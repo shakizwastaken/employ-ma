@@ -299,21 +299,30 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
 
   return (
     <FormProvider {...form}>
-      <div className="mx-auto max-w-4xl space-y-6 p-4">
+      <div className="mx-auto max-w-4xl space-y-4 p-3 sm:space-y-6 sm:p-4 md:p-6">
         {/* Progress Indicator */}
         <Card>
-          <CardHeader>
-            <CardTitle>Application Form</CardTitle>
+          <CardHeader className="px-4 pb-3 sm:px-6 sm:pb-6">
+            <CardTitle className="text-lg sm:text-xl">
+              Application Form
+            </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
+          <CardContent className="px-4 pb-4 sm:px-6 sm:pb-6">
+            {/* Mobile: Show current step and total */}
+            <div className="mb-4 block sm:hidden">
+              <p className="text-muted-foreground text-sm">
+                Step {currentStep} of {TOTAL_STEPS}
+              </p>
+            </div>
+            {/* Desktop: Full progress bar */}
+            <div className="hidden items-center justify-between overflow-x-auto pb-2 sm:flex">
               {Array.from(
                 { length: TOTAL_STEPS },
                 (_: unknown, i: number) => i + 1,
               ).map((step: number) => (
-                <div key={step} className="flex items-center">
+                <div key={step} className="flex shrink-0 items-center">
                   <div
-                    className={`flex h-8 w-8 items-center justify-center rounded-full ${
+                    className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-medium sm:text-sm ${
                       step === currentStep
                         ? "bg-primary text-primary-foreground"
                         : step < currentStep
@@ -325,7 +334,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
                   </div>
                   {step < TOTAL_STEPS && (
                     <div
-                      className={`h-1 w-12 ${
+                      className={`h-1 w-8 sm:w-12 ${
                         step < currentStep ? "bg-primary" : "bg-muted"
                       }`}
                     />
@@ -333,27 +342,52 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
                 </div>
               ))}
             </div>
+            {/* Mobile: Progress dots */}
+            <div className="flex items-center justify-center gap-1.5 sm:hidden">
+              {Array.from(
+                { length: TOTAL_STEPS },
+                (_: unknown, i: number) => i + 1,
+              ).map((step: number) => (
+                <div
+                  key={step}
+                  className={`h-1.5 w-1.5 rounded-full transition-colors ${
+                    step === currentStep
+                      ? "bg-primary w-6"
+                      : step < currentStep
+                        ? "bg-primary/50"
+                        : "bg-muted"
+                  }`}
+                />
+              ))}
+            </div>
           </CardContent>
         </Card>
 
         {/* Step Content */}
         <Card>
-          <CardContent className="pt-6">{renderStep()}</CardContent>
+          <CardContent className="px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-6">
+            {renderStep()}
+          </CardContent>
         </Card>
 
         {/* Navigation Buttons */}
         {currentStep < TOTAL_STEPS && (
-          <div className="flex justify-between">
+          <div className="bg-background/95 sticky bottom-0 z-50 flex flex-col-reverse justify-between gap-3 border-t p-3 pt-4 backdrop-blur-sm sm:relative sm:flex-row sm:gap-0 sm:border-t-0 sm:bg-transparent sm:p-0 sm:pt-0">
             <Button
               type="button"
               variant="outline"
               onClick={handlePrevious}
               disabled={currentStep === 1}
+              className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
             >
               <ChevronLeft className="mr-2 h-4 w-4" />
               Previous
             </Button>
-            <Button type="button" onClick={handleNext}>
+            <Button
+              type="button"
+              onClick={handleNext}
+              className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
+            >
               Next
               <ChevronRight className="ml-2 h-4 w-4" />
             </Button>

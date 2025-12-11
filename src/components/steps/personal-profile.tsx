@@ -70,10 +70,10 @@ export function Step3PersonalProfile() {
   }, [countryOfResidence, timeZone, setValue]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-2xl font-semibold">Personal Profile</h2>
-        <p className="text-muted-foreground">
+        <h2 className="text-xl font-semibold sm:text-2xl">Personal Profile</h2>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Tell us where you&apos;re located and some personal details
         </p>
       </div>

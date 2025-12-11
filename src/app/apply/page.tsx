@@ -10,8 +10,8 @@ export default async function ApplyPage({ searchParams }: ApplyPageProps) {
   const email = params.email ? decodeURIComponent(params.email) : undefined;
 
   return (
-    <div className="bg-background min-h-screen">
-      <Suspense fallback={<div>Loading...</div>}>
+    <div className="bg-background min-h-screen pb-20 sm:pb-0">
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen p-4">Loading...</div>}>
         <ApplicationForm initialEmail={email} />
       </Suspense>
     </div>
