@@ -16,5 +16,5 @@ export function getCategorySuggestions(query?: string): string[] {
 /**
  * Get all available categories (for reference)
  */
-export const ALL_CATEGORY_SUGGESTIONS = categorySuggestionsData as readonly string[];
-
+export const ALL_CATEGORY_SUGGESTIONS =
+  categorySuggestionsData as readonly string[];

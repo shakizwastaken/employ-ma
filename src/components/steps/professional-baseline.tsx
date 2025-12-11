@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   Field,
@@ -14,8 +15,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { ApplicationFormData } from "@/server/api/validators/application";
-import { ALL_CATEGORY_SUGGESTIONS } from "@/lib/category-suggestions";
+import { getCategorySuggestions } from "@/lib/category-suggestions";
 
 const educationLevels = [
   { value: "bachelor", label: "Bachelor's Degree" },
@@ -112,31 +116,217 @@ export function Step2ProfessionalBaseline() {
         <Controller
           name="category"
           control={control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="category">
-                Category <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Select
-                value={field.value ?? ""}
-                onValueChange={(value) => {
-                  field.onChange(value);
-                }}
-              >
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ALL_CATEGORY_SUGGESTIONS.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
+          render={({ field, fieldState }) => {
+            const [isOpen, setIsOpen] = useState(false);
+            const [searchQuery, setSearchQuery] = useState("");
+            const containerRef = useRef<HTMLDivElement>(null);
+            const inputRef = useRef<HTMLInputElement>(null);
+
+            // Get all categories
+            const allCategories = useMemo(() => getCategorySuggestions(), []);
+
+            // Filter categories based on search query
+            const filteredCategories = useMemo(() => {
+              if (!searchQuery.trim()) {
+                return allCategories;
+              }
+              return getCategorySuggestions(searchQuery);
+            }, [searchQuery, allCategories]);
+
+            // Handle click outside to close
+            useEffect(() => {
+              const handleClickOutside = (event: MouseEvent) => {
+                if (
+                  containerRef.current &&
+                  !containerRef.current.contains(event.target as Node)
+                ) {
+                  setIsOpen(false);
+                  // Reset search query to field value when closing
+                  setSearchQuery(field.value || "");
+                }
+              };
+
+              document.addEventListener("mousedown", handleClickOutside);
+              return () =>
+                document.removeEventListener("mousedown", handleClickOutside);
+            }, [field.value]);
+
+            // Sync search query with field value when not open
+            useEffect(() => {
+              if (!isOpen && field.value) {
+                setSearchQuery(field.value);
+              }
+            }, [field.value, isOpen]);
+
+            const handleSelect = (category: string) => {
+              field.onChange(category);
+              setSearchQuery(category);
+              setIsOpen(false);
+            };
+
+            const handleInputChange = (
+              e: React.ChangeEvent<HTMLInputElement>,
+            ) => {
+              const value = e.target.value;
+              setSearchQuery(value);
+              setIsOpen(true);
+
+              // If user clears input, clear the field value
+              if (!value.trim()) {
+                field.onChange("");
+              }
+            };
+
+            const handleInputFocus = () => {
+              setIsOpen(true);
+            };
+
+            const handleInputKeyDown = (
+              e: React.KeyboardEvent<HTMLInputElement>,
+            ) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                setIsOpen(true);
+                // Focus first suggestion
+                const firstButton = containerRef.current?.querySelector(
+                  '[role="option"]',
+                ) as HTMLElement;
+                firstButton?.focus();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                setIsOpen(false);
+                setSearchQuery(field.value || "");
+                inputRef.current?.blur();
+              } else if (e.key === "Enter" && filteredCategories.length > 0) {
+                e.preventDefault();
+                handleSelect(filteredCategories[0]!);
+              }
+            };
+
+            const handleSuggestionKeyDown = (
+              e: React.KeyboardEvent<HTMLButtonElement>,
+              index: number,
+            ) => {
+              if (e.key === "ArrowDown") {
+                e.preventDefault();
+                const nextButton = containerRef.current?.querySelector(
+                  `[role="option"]:nth-child(${index + 2})`,
+                ) as HTMLElement;
+                nextButton?.focus();
+              } else if (e.key === "ArrowUp") {
+                e.preventDefault();
+                if (index === 0) {
+                  inputRef.current?.focus();
+                } else {
+                  const prevButton = containerRef.current?.querySelector(
+                    `[role="option"]:nth-child(${index})`,
+                  ) as HTMLElement;
+                  prevButton?.focus();
+                }
+              } else if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                handleSelect(filteredCategories[index]!);
+              }
+            };
+
+            // Display value: show search query when open, field value when closed
+            const displayValue = isOpen ? searchQuery : field.value || "";
+
+            return (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="category">
+                  Category <span className="text-destructive">*</span>
+                </FieldLabel>
+                <div className="relative" ref={containerRef}>
+                  <div className="relative">
+                    <Input
+                      ref={inputRef}
+                      id="category"
+                      placeholder="Select or search category..."
+                      value={displayValue}
+                      onChange={handleInputChange}
+                      onFocus={handleInputFocus}
+                      onKeyDown={handleInputKeyDown}
+                      autoComplete="off"
+                      aria-autocomplete="list"
+                      aria-expanded={isOpen}
+                      aria-controls="category-options"
+                      aria-invalid={fieldState.invalid}
+                      className={cn(fieldState.invalid && "border-destructive")}
+                    />
+                    {field.value && !isOpen && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          field.onChange("");
+                          setSearchQuery("");
+                          inputRef.current?.focus();
+                        }}
+                        className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
+                        aria-label="Clear category"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown */}
+                  {isOpen && (
+                    <div
+                      id="category-options"
+                      role="listbox"
+                      className="border-border bg-popover text-popover-foreground absolute top-full z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border shadow-lg"
+                    >
+                      {filteredCategories.length > 0 ? (
+                        <div className="p-1">
+                          {filteredCategories.map((category, index) => (
+                            <button
+                              key={category}
+                              type="button"
+                              role="option"
+                              aria-selected={field.value === category}
+                              tabIndex={0}
+                              className={cn(
+                                "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex w-full items-center rounded-sm px-2 py-1.5 text-sm transition-colors outline-none",
+                                field.value === category &&
+                                  "bg-accent text-accent-foreground font-medium",
+                              )}
+                              onClick={() => handleSelect(category)}
+                              onKeyDown={(e) =>
+                                handleSuggestionKeyDown(e, index)
+                              }
+                              onMouseDown={(e) => {
+                                // Prevent input blur
+                                e.preventDefault();
+                              }}
+                            >
+                              {category}
+                            </button>
+                          ))}
+                        </div>
+                      ) : searchQuery.trim() ? (
+                        <div className="p-4 text-center">
+                          <p className="text-muted-foreground text-sm">
+                            No matching categories found
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="p-4 text-center">
+                          <p className="text-muted-foreground text-sm">
+                            Start typing to search...
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            );
+          }}
         />
       </FieldGroup>
     </div>
