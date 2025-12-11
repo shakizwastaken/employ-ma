@@ -186,7 +186,7 @@ export function Step3PersonalProfile() {
           )}
         />
 
-        <Controller
+        {/* <Controller
           name="birthYear"
           control={control}
           render={({ field, fieldState }) => (
@@ -210,7 +210,7 @@ export function Step3PersonalProfile() {
               {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
             </Field>
           )}
-        />
+        /> */}
       </FieldGroup>
     </div>
   );
