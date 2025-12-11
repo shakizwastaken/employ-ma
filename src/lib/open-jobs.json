@@ -1,0 +1,25 @@
+[
+  {
+    "id": "1",
+    "name": "Full Stack Software Developer (Python)",
+    "description": "Build and maintain web applications using Python, Next.js, and TypeScript. Work on both frontend and backend systems with modern frameworks.",
+    "requirements": ["Python", "Next.js", "TypeScript", "Fluent in English"]
+  },
+  {
+    "id": "2",
+    "name": "Full Stack Software Developer",
+    "description": "Develop scalable web applications using Node.js and TypeScript. Build robust backend systems and modern frontend interfaces.",
+    "requirements": ["Node.js", "TypeScript", "Fluent in English"]
+  },
+  {
+    "id": "3",
+    "name": "General Virtual Assistant",
+    "description": "Provide administrative support, manage schedules, handle communications, and assist with various business tasks remotely.",
+    "requirements": [
+      "Fluent in English",
+      "Strong communication skills",
+      "Time management",
+      "Attention to detail"
+    ]
+  }
+]
