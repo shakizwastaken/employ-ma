@@ -123,7 +123,8 @@ export function Step10Review({
               <strong>Job Status:</strong> {String(formData.currentJobStatus)}
             </p>
             <p>
-              <strong>Category:</strong> {formData.category || "Not provided"}
+              <strong>Specialization:</strong>{" "}
+              {formData.category || "Not provided"}
             </p>
           </CardContent>
         </Card>

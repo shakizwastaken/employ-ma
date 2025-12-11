@@ -235,14 +235,14 @@ export function Step2ProfessionalBaseline() {
             return (
               <Field data-invalid={fieldState.invalid}>
                 <FieldLabel htmlFor="category">
-                  Category <span className="text-destructive">*</span>
+                  Specialization <span className="text-destructive">*</span>
                 </FieldLabel>
                 <div className="relative" ref={containerRef}>
                   <div className="relative">
                     <Input
                       ref={inputRef}
                       id="category"
-                      placeholder="Select or search category..."
+                      placeholder="Select or search specialization..."
                       value={displayValue}
                       onChange={handleInputChange}
                       onFocus={handleInputFocus}
@@ -264,7 +264,7 @@ export function Step2ProfessionalBaseline() {
                           inputRef.current?.focus();
                         }}
                         className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2"
-                        aria-label="Clear category"
+                        aria-label="Clear specialization"
                       >
                         <X className="h-4 w-4" />
                       </button>
