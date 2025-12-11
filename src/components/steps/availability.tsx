@@ -170,9 +170,7 @@ export function Step6Availability() {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor="expectedSalary">
-                {isFullTime
-                  ? "Expected Monthly Salary (USD)"
-                  : "Expected Monthly Earnings (USD)"}{" "}
+                Expected Monthly Rate (USD)
                 <span className="text-destructive">*</span>
               </FieldLabel>
               <Input
