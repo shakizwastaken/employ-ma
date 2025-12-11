@@ -94,9 +94,7 @@ export function getStepFromFieldPath(path: FieldPath): number | null {
  * @param errors - Array of field paths from Zod errors
  * @returns The first step number with errors, or null if no errors found
  */
-export function getFirstErrorStep(
-  errors: FieldPath[],
-): number | null {
+export function getFirstErrorStep(errors: FieldPath[]): number | null {
   for (const errorPath of errors) {
     const step = getStepFromFieldPath(errorPath);
     if (step !== null) {
@@ -132,4 +130,3 @@ export function extractFieldPaths(zodError: {
 
   return paths;
 }
-

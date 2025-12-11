@@ -10,10 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/trpc/react";
 import { applicationFormSchema } from "@/server/api/validators/application";
 import type { ApplicationFormData } from "@/server/api/validators/application";
-import {
-  extractFieldPaths,
-  getFirstErrorStep,
-} from "@/lib/error-utils";
+import { extractFieldPaths, getFirstErrorStep } from "@/lib/error-utils";
 import { Step1UserIdentity } from "./steps/user-identity";
 import { Step2ProfessionalBaseline } from "./steps/professional-baseline";
 import { Step3PersonalProfile } from "./steps/personal-profile";
@@ -58,13 +55,13 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
     },
     onError: (error) => {
       console.error("Submission error:", error);
-      
+
       // Try to extract Zod errors and navigate to the first error step
       const zodError = error.data?.zodError;
       if (zodError) {
         const fieldPaths = extractFieldPaths(zodError);
         const errorStep = getFirstErrorStep(fieldPaths);
-        
+
         if (errorStep) {
           setCurrentStep(errorStep);
           window.scrollTo({ top: 0, behavior: "smooth" });
@@ -73,7 +70,8 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
           });
         } else {
           toast.error("Validation error", {
-            description: error.message || "Please check your form and try again.",
+            description:
+              error.message || "Please check your form and try again.",
           });
         }
       } else {
@@ -118,7 +116,8 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
         // Handle quota exceeded or other localStorage errors
         if (e instanceof DOMException && e.name === "QuotaExceededError") {
           toast.warning("Storage limit reached", {
-            description: "Unable to save form progress. Please complete the form soon.",
+            description:
+              "Unable to save form progress. Please complete the form soon.",
           });
         } else {
           console.error("Failed to save form data", e);
@@ -183,7 +182,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
       // Get form errors to show specific message
       const errors = form.formState.errors;
       const errorFields = Object.keys(errors);
-      
+
       if (errorFields.length > 0) {
         toast.error("Please fix the errors before continuing", {
           description: "Some required fields are missing or invalid.",
@@ -210,7 +209,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
       // Extract errors and navigate to first error step
       const errors = form.formState.errors;
       const errorPaths: (string | number)[][] = [];
-      
+
       // Convert react-hook-form errors to field paths
       const processErrors = (
         obj: Record<string, unknown>,
@@ -226,7 +225,10 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
               // Handle array errors (e.g., experiences, languages)
               value.forEach((item, index) => {
                 if (item && typeof item === "object" && !Array.isArray(item)) {
-                  processErrors(item as Record<string, unknown>, [...path, index]);
+                  processErrors(item as Record<string, unknown>, [
+                    ...path,
+                    index,
+                  ]);
                 } else if (item) {
                   // Direct error in array
                   errorPaths.push([...path, index]);
@@ -239,9 +241,9 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
           }
         }
       };
-      
+
       processErrors(errors as Record<string, unknown>);
-      
+
       const errorStep = getFirstErrorStep(errorPaths);
       if (errorStep) {
         setCurrentStep(errorStep);

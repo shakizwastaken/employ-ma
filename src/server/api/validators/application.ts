@@ -79,9 +79,7 @@ export const step3Schema = z.object({
   countryOfResidence: z
     .string()
     .length(2, "Please select your country of residence"), // ISO 3166-1 alpha-2 code
-  timeZone: z
-    .string()
-    .min(1, "Please select your time zone"),
+  timeZone: z.string().min(1, "Please select your time zone"),
   countryOfOrigin: z
     .string()
     .length(2, "Country code must be 2 characters")
@@ -157,7 +155,9 @@ export const step5Schema = z
     linkedinUrl: z
       .string()
       .min(1, "LinkedIn URL is required")
-      .url("Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/yourprofile)"),
+      .url(
+        "Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/yourprofile)",
+      ),
     socialProfiles: z.array(socialProfileSchema).default([]),
   })
   .refine(
@@ -166,7 +166,8 @@ export const step5Schema = z
       return new Set(platforms).size === platforms.length;
     },
     {
-      message: "You cannot add the same platform twice. Please remove the duplicate.",
+      message:
+        "You cannot add the same platform twice. Please remove the duplicate.",
       path: ["socialProfiles"],
     },
   );
@@ -202,7 +203,8 @@ export const step6Schema = z
       return true;
     },
     {
-      message: "Please specify how many days until you're available for full-time work",
+      message:
+        "Please specify how many days until you're available for full-time work",
       path: ["availableIn"],
     },
   )
@@ -269,7 +271,8 @@ export const step7Schema = z
       return new Set(names).size === names.length;
     },
     {
-      message: "You cannot add the same skill twice. Please remove the duplicate.",
+      message:
+        "You cannot add the same skill twice. Please remove the duplicate.",
       path: ["skills"],
     },
   );
@@ -338,7 +341,8 @@ export const experienceSchema = z
       return true;
     },
     {
-      message: "Please provide an end year for past positions, or mark this as your current position",
+      message:
+        "Please provide an end year for past positions, or mark this as your current position",
       path: ["endYear"],
     },
   )
@@ -351,7 +355,8 @@ export const experienceSchema = z
       );
     },
     {
-      message: "Please provide at least a company name, position title, or description",
+      message:
+        "Please provide at least a company name, position title, or description",
     },
   );
 
@@ -363,12 +368,16 @@ export const step8Schema = z.object({
 export const step9Schema = z.object({
   resumeUrl: z
     .string()
-    .url("Please enter a valid resume URL (e.g., https://example.com/resume.pdf)")
+    .url(
+      "Please enter a valid resume URL (e.g., https://example.com/resume.pdf)",
+    )
     .optional()
     .or(z.literal("")),
   videoUrl: z
     .string()
-    .url("Please enter a valid video URL (e.g., https://youtube.com/watch?v=...)")
+    .url(
+      "Please enter a valid video URL (e.g., https://youtube.com/watch?v=...)",
+    )
     .optional()
     .or(z.literal("")),
   notes: z
@@ -399,7 +408,8 @@ export const applicationFormSchema = step1Schema
       return true;
     },
     {
-      message: "Please specify how many days until you're available for full-time work",
+      message:
+        "Please specify how many days until you're available for full-time work",
       path: ["availableIn"],
     },
   )
