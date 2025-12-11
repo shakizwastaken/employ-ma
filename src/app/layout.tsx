@@ -2,6 +2,7 @@ import "@/styles/globals.css";
 
 import { type Metadata } from "next";
 import { Geist } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "sonner";
 
 import { TRPCReactProvider } from "@/trpc/react";
@@ -25,6 +26,13 @@ export default function RootLayout({
       <body>
         <TRPCReactProvider>{children}</TRPCReactProvider>
         <Toaster />
+        <Script
+          src="https://analytics.rendy.io/api/script.js"
+          data-session-replay="true"
+          data-track-errors="true"
+          data-site-id="2"
+          defer
+        />
       </body>
     </html>
   );
