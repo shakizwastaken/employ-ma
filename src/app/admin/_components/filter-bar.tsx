@@ -28,7 +28,7 @@ export function FilterBar({ filters, onFiltersChange, total }: FilterBarProps) {
   return (
     <Card>
       <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
           <div className="space-y-2">
             <Label htmlFor="search">Search</Label>
             <Input
@@ -61,16 +61,19 @@ export function FilterBar({ filters, onFiltersChange, total }: FilterBarProps) {
           <div className="space-y-2">
             <Label htmlFor="status">Status</Label>
             <Select
-              value={filters.filterStatus}
+              value={filters.filterStatus || "all"}
               onValueChange={(value) =>
-                onFiltersChange({ ...filters, filterStatus: value })
+                onFiltersChange({
+                  ...filters,
+                  filterStatus: value === "all" ? "" : value,
+                })
               }
             >
               <SelectTrigger id="status">
                 <SelectValue placeholder="All statuses" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All statuses</SelectItem>
+                <SelectItem value="all">All statuses</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="archived">Archived</SelectItem>
               </SelectContent>
@@ -89,7 +92,7 @@ export function FilterBar({ filters, onFiltersChange, total }: FilterBarProps) {
           </div>
         </div>
         {total > 0 && (
-          <div className="mt-4 text-sm text-muted-foreground">
+          <div className="text-muted-foreground mt-4 text-sm">
             Showing {filters.offset + 1}-
             {Math.min(filters.offset + filters.limit, total)} of {total}{" "}
             applications
@@ -99,4 +102,3 @@ export function FilterBar({ filters, onFiltersChange, total }: FilterBarProps) {
     </Card>
   );
 }
-
