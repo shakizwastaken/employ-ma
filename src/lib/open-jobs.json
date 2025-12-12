@@ -3,23 +3,35 @@
     "id": "1",
     "name": "Full Stack Software Developer (Python)",
     "description": "Build and maintain web applications using Python, Next.js, and TypeScript. Work on both frontend and backend systems with modern frameworks.",
-    "requirements": ["Python", "Next.js", "TypeScript", "Fluent in English"]
+    "requirements": ["Python", "Next.js", "TypeScript", "Good English Required"]
   },
   {
     "id": "2",
     "name": "Full Stack Software Developer",
     "description": "Develop scalable web applications using Node.js and TypeScript. Build robust backend systems and modern frontend interfaces.",
-    "requirements": ["Node.js", "TypeScript", "Fluent in English"]
+    "requirements": ["Node.js", "TypeScript", "Good English Required"]
   },
   {
     "id": "3",
     "name": "General Virtual Assistant",
     "description": "Provide administrative support, manage schedules, handle communications, and assist with various business tasks remotely.",
     "requirements": [
-      "Fluent in English",
+      "Good English Required",
       "Strong communication skills",
       "Time management",
       "Attention to detail"
+    ]
+  },
+  {
+    "id": "4",
+    "name": "[URGENT]: UI/UX designer",
+    "description": "Design intuitive and engaging user interfaces and experiences for a fast-growing startup. Create wireframes, prototypes, and high-fidelity designs that enhance user satisfaction.",
+    "requirements": [
+      "UI/UX Design",
+      "Figma",
+      "User Research",
+      "Prototyping",
+      "Good English Required"
     ]
   }
 ]
