@@ -26,9 +26,6 @@ const availabilityOptions = [
 export function Step6Availability() {
   const { control, watch } = useFormContext<ApplicationFormData>();
 
-  const availability = watch("availability");
-  const isFullTime = availability === "full_time";
-
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
@@ -69,97 +66,33 @@ export function Step6Availability() {
           )}
         />
 
-        {isFullTime ? (
-          <Controller
-            name="availableIn"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="availableIn">
-                  Available In (Days){" "}
-                  <span className="text-destructive">*</span>
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id="availableIn"
-                  type="number"
-                  min={0}
-                  placeholder="e.g., 30"
-                  value={field.value ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(
-                      value ? Number.parseInt(value, 10) : undefined,
-                    );
-                  }}
-                  aria-invalid={fieldState.invalid}
-                />
-                <span className="text-muted-foreground text-sm">
-                  How many days until you can start?
-                </span>
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        ) : (
-          <Controller
-            name="hoursPerWeek"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Field data-invalid={fieldState.invalid}>
-                <FieldLabel htmlFor="hoursPerWeek">
-                  Hours Per Week <span className="text-destructive">*</span>
-                </FieldLabel>
-                <Input
-                  {...field}
-                  id="hoursPerWeek"
-                  type="number"
-                  min={1}
-                  max={80}
-                  placeholder="e.g., 20"
-                  value={field.value ?? ""}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(
-                      value ? Number.parseInt(value, 10) : undefined,
-                    );
-                  }}
-                  aria-invalid={fieldState.invalid}
-                />
-                {fieldState.invalid && (
-                  <FieldError errors={[fieldState.error]} />
-                )}
-              </Field>
-            )}
-          />
-        )}
-
         <Controller
-          name="availableFrom"
+          name="hoursPerWeek"
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="availableFrom">
-                Available From (Optional)
+              <FieldLabel htmlFor="hoursPerWeek">
+                Hours Per Week
               </FieldLabel>
               <Input
                 {...field}
-                id="availableFrom"
-                type="date"
-                value={
-                  field.value instanceof Date
-                    ? field.value.toISOString().split("T")[0]
-                    : (field.value ?? "")
-                }
+                id="hoursPerWeek"
+                type="number"
+                min={1}
+                max={80}
+                placeholder="e.g., 20"
+                value={field.value ?? ""}
                 onChange={(e) => {
                   const value = e.target.value;
-                  field.onChange(value ? new Date(value) : undefined);
+                  field.onChange(
+                    value ? Number.parseInt(value, 10) : undefined,
+                  );
                 }}
                 aria-invalid={fieldState.invalid}
               />
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
+              {fieldState.invalid && (
+                <FieldError errors={[fieldState.error]} />
+              )}
             </Field>
           )}
         />

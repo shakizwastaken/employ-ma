@@ -245,15 +245,9 @@ export function Step10Review({
             <p>
               <strong>Availability:</strong> {String(formData.availability)}
             </p>
-            {formData.availability === "full_time" ? (
+            {formData.hoursPerWeek && (
               <p>
-                <strong>Available In:</strong>{" "}
-                {String(formData.availableIn ?? 0)} days
-              </p>
-            ) : (
-              <p>
-                <strong>Hours/Week:</strong>{" "}
-                {String(formData.hoursPerWeek ?? 0)}
+                <strong>Hours/Week:</strong> {String(formData.hoursPerWeek)}
               </p>
             )}
             <p>

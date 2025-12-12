@@ -174,53 +174,20 @@ export const step5Schema = z
   );
 
 // Step 6: Availability & Compensation
-export const step6Schema = z
-  .object({
-    availability: availabilityEnum,
-    availableIn: z
-      .number()
-      .int()
-      .min(0, "Available days must be 0 or greater")
-      .max(365, "Available days cannot exceed 365")
-      .optional(),
-    hoursPerWeek: z
-      .number()
-      .int()
-      .min(1, "Hours per week must be at least 1")
-      .max(80, "Hours per week cannot exceed 80")
-      .optional(),
-    availableFrom: z.date().optional(),
-    expectedSalary: z
-      .number()
-      .min(0, "Expected salary must be 0 or greater")
-      .max(10000000, "Expected salary cannot exceed $10,000,000")
-      .multipleOf(0.01, "Salary must have at most 2 decimal places"),
-  })
-  .refine(
-    (data) => {
-      if (data.availability === "full_time") {
-        return data.availableIn !== undefined;
-      }
-      return true;
-    },
-    {
-      message:
-        "Please specify how many days until you're available for full-time work",
-      path: ["availableIn"],
-    },
-  )
-  .refine(
-    (data) => {
-      if (data.availability !== "full_time") {
-        return data.hoursPerWeek !== undefined;
-      }
-      return true;
-    },
-    {
-      message: "Please specify how many hours per week you're available",
-      path: ["hoursPerWeek"],
-    },
-  );
+export const step6Schema = z.object({
+  availability: availabilityEnum,
+  hoursPerWeek: z
+    .number()
+    .int()
+    .min(1, "Hours per week must be at least 1")
+    .max(80, "Hours per week cannot exceed 80")
+    .optional(),
+  expectedSalary: z
+    .number()
+    .min(0, "Expected salary must be 0 or greater")
+    .max(10000000, "Expected salary cannot exceed $10,000,000")
+    .multipleOf(0.01, "Salary must have at most 2 decimal places"),
+});
 
 // Step 7: Skills
 export const skillSchema = z
@@ -401,19 +368,6 @@ export const applicationFormSchema = step1Schema
   .and(step8Schema)
   .and(step9Schema)
   .and(step10Schema)
-  .refine(
-    (data) => {
-      if (data.availability === "full_time") {
-        return data.availableIn !== undefined;
-      }
-      return true;
-    },
-    {
-      message:
-        "Please specify how many days until you're available for full-time work",
-      path: ["availableIn"],
-    },
-  )
   .refine(
     (data) => {
       if (data.availability !== "full_time") {

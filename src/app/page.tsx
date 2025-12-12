@@ -15,8 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://hiring.ma";
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://hiring.ma";
 
   // Structured data for job postings
   const jobPostingStructuredData = openJobsData.map((job) => ({

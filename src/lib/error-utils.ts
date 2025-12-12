@@ -58,10 +58,8 @@ export function getStepFromFieldPath(path: FieldPath): number | null {
   // Step 6: Availability & Compensation
   if (
     firstSegment === "availability" ||
-    firstSegment === "availableIn" ||
     firstSegment === "hoursPerWeek" ||
-    firstSegment === "expectedSalary" ||
-    firstSegment === "availableFrom"
+    firstSegment === "expectedSalary"
   ) {
     return 6;
   }

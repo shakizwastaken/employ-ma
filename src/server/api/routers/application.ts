@@ -63,11 +63,6 @@ export const applicationRouter = createTRPCRouter({
             highestFormalEducationLevel: input.highestFormalEducationLevel,
             availability: input.availability,
             hoursPerWeek: input.hoursPerWeek ?? null,
-            availableIn:
-              input.availability === "full_time" ? (input.availableIn ?? 0) : 0,
-            availableFrom: input.availableFrom
-              ? new Date(input.availableFrom).toISOString().split("T")[0]
-              : null,
             expectedSalary: input.expectedSalary,
             resumeUrl: input.resumeUrl ?? null,
             videoUrl: input.videoUrl ?? null,
