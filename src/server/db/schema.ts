@@ -213,11 +213,15 @@ export const application = pgTable(
 
     availableIn: integer("available_in").default(0),
 
+    isPublic: boolean("is_public").default(false).notNull(),
+    publicToken: text("public_token").unique(),
+
     createdAt,
     updatedAt,
   },
   (table) => ({
     emailIdx: index("application_email_idx").on(table.email),
+    publicTokenIdx: index("application_public_token_idx").on(table.publicToken),
   }),
 );
 

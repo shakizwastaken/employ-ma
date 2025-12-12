@@ -132,3 +132,38 @@ export const protectedProcedure = t.procedure
       },
     });
   });
+
+/**
+ * Admin-only procedure
+ *
+ * This procedure requires the user to be authenticated AND have admin role.
+ * It verifies the session is valid and that the user has admin privileges.
+ */
+export const adminProcedure = t.procedure
+  .use(timingMiddleware)
+  .use(({ ctx, next }) => {
+    if (!ctx.session?.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED" });
+    }
+    
+    // Check if user has admin role
+    // Role can be a string (potentially comma-separated) or null/undefined
+    const userRole = ctx.session.user.role;
+    const isAdmin =
+      userRole === "admin" ||
+      (typeof userRole === "string" && userRole.split(",").includes("admin")) ||
+      (Array.isArray(userRole) && userRole.includes("admin"));
+    
+    if (!isAdmin) {
+      throw new TRPCError({ 
+        code: "FORBIDDEN",
+        message: "Admin access required" 
+      });
+    }
+    
+    return next({
+      ctx: {
+        session: { ...ctx.session, user: ctx.session.user },
+      },
+    });
+  });
