@@ -154,10 +154,11 @@ export const step5Schema = z
   .object({
     linkedinUrl: z
       .string()
-      .min(1, "LinkedIn URL is required")
       .url(
         "Please enter a valid LinkedIn URL (e.g., https://linkedin.com/in/yourprofile)",
-      ),
+      )
+      .optional()
+      .or(z.literal("")),
     socialProfiles: z.array(socialProfileSchema).default([]),
   })
   .refine(

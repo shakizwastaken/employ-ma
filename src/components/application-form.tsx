@@ -160,8 +160,8 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
         fieldsToValidate = ["languages"];
         break;
       case 5:
-        fieldsToValidate = ["linkedinUrl"];
-        break;
+        // Step 5 is optional (LinkedIn and social profiles)
+        return true;
       case 6:
         fieldsToValidate = ["availability", "expectedSalary"];
         break;

@@ -59,7 +59,7 @@ export function Step5SocialProfiles() {
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
               <FieldLabel htmlFor="linkedinUrl">
-                LinkedIn URL <span className="text-destructive">*</span>
+                LinkedIn URL
               </FieldLabel>
               <Input
                 {...field}

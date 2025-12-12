@@ -197,7 +197,10 @@ export function Step10Review({
           </CardHeader>
           <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
             <p>
-              <strong>LinkedIn:</strong> {String(formData.linkedinUrl)}
+              <strong>LinkedIn:</strong>{" "}
+              {formData.linkedinUrl && formData.linkedinUrl.trim() !== ""
+                ? String(formData.linkedinUrl)
+                : "Not provided"}
             </p>
             {Array.isArray(formData.socialProfiles) &&
             formData.socialProfiles.length > 0

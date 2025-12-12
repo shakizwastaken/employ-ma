@@ -94,12 +94,14 @@ export const applicationRouter = createTRPCRouter({
           );
         }
 
-        // Insert LinkedIn social profile
-        await tx.insert(social).values({
-          applicationId,
-          platform: "linkedin",
-          url: input.linkedinUrl,
-        });
+        // Insert LinkedIn social profile if provided
+        if (input.linkedinUrl && input.linkedinUrl.trim() !== "") {
+          await tx.insert(social).values({
+            applicationId,
+            platform: "linkedin",
+            url: input.linkedinUrl,
+          });
+        }
 
         // Insert additional social profiles
         if (input.socialProfiles && input.socialProfiles.length > 0) {
