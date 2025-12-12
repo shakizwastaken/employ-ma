@@ -1,4 +1,14 @@
-import { SignupForm } from "@/components/signup-form"
+import { type Metadata } from "next";
+import { SignupForm } from "@/components/signup-form";
+
+export const metadata: Metadata = {
+  title: "Sign Up",
+  description: "Create an account to start applying for remote job opportunities.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 export default function Page() {
   return (
