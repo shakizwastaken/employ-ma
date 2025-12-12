@@ -219,7 +219,7 @@ export const adminRouter = createTRPCRouter({
         filterCategory: z.string().optional(),
       }),
     )
-    .query(async ({ ctx, input }) => {
+    .mutation(async ({ ctx, input }) => {
       const conditions = [];
 
       if (input.filterStatus) {

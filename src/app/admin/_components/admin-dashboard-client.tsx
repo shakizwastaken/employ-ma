@@ -23,9 +23,8 @@ export function AdminDashboardClient() {
     offset: 0,
   });
 
-  const { data, isLoading, refetch } = api.admin.listApplications.useQuery(
-    filters,
-  );
+  const { data, isLoading, refetch } =
+    api.admin.listApplications.useQuery(filters);
 
   const exportMutation = api.admin.exportApplications.useMutation({
     onSuccess: (result) => {
@@ -76,7 +75,7 @@ export function AdminDashboardClient() {
   }
 
   return (
-    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+    <div className="container mx-auto space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Admin Dashboard</h1>
@@ -112,9 +111,7 @@ export function AdminDashboardClient() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Applications ({data?.total ?? 0})
-          </CardTitle>
+          <CardTitle>Applications ({data?.total ?? 0})</CardTitle>
         </CardHeader>
         <CardContent>
           <ApplicationList
@@ -140,7 +137,7 @@ export function AdminDashboardClient() {
           >
             Previous
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-muted-foreground text-sm">
             Page {Math.floor(filters.offset / filters.limit) + 1} of{" "}
             {Math.ceil(data.total / filters.limit)}
           </span>
@@ -161,4 +158,3 @@ export function AdminDashboardClient() {
     </div>
   );
 }
-
