@@ -48,6 +48,18 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
 
   const submitMutation = api.application.submitApplication.useMutation({
     onSuccess: () => {
+      // Track submission event with Facebook Pixel
+      try {
+        if (typeof window !== "undefined") {
+          const fbq = (window as unknown as Record<string, unknown>).fbq;
+          if (typeof fbq === "function") {
+            (fbq as (...args: unknown[]) => void)("track", "Lead");
+          }
+        }
+      } catch {
+        // Silently fail - tracking should never break the app
+      }
+
       toast.success("Application submitted successfully!", {
         description: "Thank you for your application. We'll be in touch soon.",
       });
