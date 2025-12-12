@@ -8,7 +8,7 @@ import { Toaster } from "sonner";
 import { TRPCReactProvider } from "@/trpc/react";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://hiring.ma"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "https://hiring.ma"),
   title: {
     default: "Find Your Perfect Remote Job | Hiring MA",
     template: "%s | Hiring MA",
@@ -91,6 +91,7 @@ export default function RootLayout({
               }}
             />
             <noscript>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 height="1"
                 width="1"

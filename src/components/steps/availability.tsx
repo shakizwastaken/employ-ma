@@ -24,7 +24,7 @@ const availabilityOptions = [
 ];
 
 export function Step6Availability() {
-  const { control, watch } = useFormContext<ApplicationFormData>();
+  const { control } = useFormContext<ApplicationFormData>();
 
   return (
     <div className="space-y-4 sm:space-y-6">
