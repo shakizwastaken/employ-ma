@@ -11,7 +11,12 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import openJobsData from "@/lib/open-jobs.json";
 
 export function HomeClient() {
@@ -81,6 +86,11 @@ export function HomeClient() {
               </FieldGroup>
             </form>
           </div>
+          <CardFooter>
+            <CardDescription>
+              Need help? Contact us at <strong>yahya@drip.ma</strong>
+            </CardDescription>
+          </CardFooter>
         </CardContent>
       </Card>
 
