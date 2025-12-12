@@ -35,29 +35,31 @@ export function Step10Review({
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl sm:text-2xl font-semibold">Review & Submit</h2>
-        <p className="text-muted-foreground text-sm sm:text-base mt-1">
+        <h2 className="text-xl font-semibold sm:text-2xl">Review & Submit</h2>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Review your information before submitting
         </p>
       </div>
 
       <div className="space-y-3 sm:space-y-4">
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-              <CardTitle className="text-base sm:text-lg">Step 1: User Identity</CardTitle>
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">
+                Step 1: User Identity
+              </CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(1)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             <p>
               <strong>Name:</strong> {String(formData.firstName)}{" "}
               {String(formData.lastName)}
@@ -72,21 +74,23 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-              <CardTitle className="text-base sm:text-lg">Step 2: Professional Baseline</CardTitle>
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">
+                Step 2: Professional Baseline
+              </CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(2)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             <p>
               <strong>Education:</strong>{" "}
               {String(formData.highestFormalEducationLevel)}
@@ -102,21 +106,23 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-              <CardTitle className="text-base sm:text-lg">Step 3: Personal Profile</CardTitle>
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">
+                Step 3: Personal Profile
+              </CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(3)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             <p>
               <strong>Residence:</strong>{" "}
               {getCountryName(formData.countryOfResidence)}
@@ -144,8 +150,8 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
               <CardTitle className="text-base sm:text-lg">
                 Step 4: Languages (
                 {formData.languages && Array.isArray(formData.languages)
@@ -158,13 +164,13 @@ export function Step10Review({
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(4)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             {formData.languages &&
             Array.isArray(formData.languages) &&
             formData.languages.length > 0
@@ -181,21 +187,23 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-              <CardTitle className="text-base sm:text-lg">Step 5: Social Profiles</CardTitle>
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">
+                Step 5: Social Profiles
+              </CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(5)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             <p>
               <strong>LinkedIn:</strong>{" "}
               {formData.linkedinUrl && formData.linkedinUrl.trim() !== ""
@@ -217,21 +225,23 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-              <CardTitle className="text-base sm:text-lg">Step 6: Availability & Compensation</CardTitle>
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">
+                Step 6: Availability & Compensation
+              </CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(6)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             <p>
               <strong>Availability:</strong> {String(formData.availability)}
             </p>
@@ -254,8 +264,8 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
               <CardTitle className="text-base sm:text-lg">
                 Step 7: Skills (
                 {formData.skills && Array.isArray(formData.skills)
@@ -268,13 +278,13 @@ export function Step10Review({
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(7)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             {Array.isArray(formData.skills) && formData.skills.length > 0
               ? formData.skills.map(
                   (skill: { name: string; level: string }, i: number) => (
@@ -289,8 +299,8 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
               <CardTitle className="text-base sm:text-lg">
                 Step 8: Work Experience (
                 {formData.experiences && Array.isArray(formData.experiences)
@@ -303,13 +313,13 @@ export function Step10Review({
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(8)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             {Array.isArray(formData.experiences) &&
             formData.experiences.length > 0
               ? formData.experiences.map(
@@ -348,21 +358,23 @@ export function Step10Review({
         </Card>
 
         <Card>
-          <CardHeader className="px-4 sm:px-6 py-3 sm:py-6">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
-              <CardTitle className="text-base sm:text-lg">Step 9: Resume & Video</CardTitle>
+          <CardHeader className="px-4 py-3 sm:px-6 sm:py-6">
+            <div className="flex flex-col items-start justify-between gap-2 sm:flex-row sm:items-center sm:gap-0">
+              <CardTitle className="text-base sm:text-lg">
+                Step 9: Resume & Video
+              </CardTitle>
               <Button
                 type="button"
                 variant="ghost"
                 size="sm"
                 onClick={() => onEditStep(9)}
-                className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+                className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
               >
                 Edit
               </Button>
             </div>
           </CardHeader>
-          <CardContent className="space-y-1 text-xs sm:text-sm px-4 sm:px-6 pb-4 sm:pb-6">
+          <CardContent className="space-y-1 px-4 pb-4 text-xs sm:px-6 sm:pb-6 sm:text-sm">
             {formData.resumeUrl ? (
               <p>
                 <strong>Resume:</strong> {String(formData.resumeUrl)}
@@ -388,7 +400,7 @@ export function Step10Review({
           size="lg"
           onClick={onSubmit}
           disabled={isSubmitting}
-          className="w-full sm:w-auto min-h-[44px] sm:min-h-0"
+          className="min-h-[44px] w-full sm:min-h-0 sm:w-auto"
         >
           {isSubmitting ? "Submitting..." : "Submit Application"}
         </Button>
