@@ -29,7 +29,7 @@ export function ApplicationDetail({
 
   if (isLoading) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center py-8 text-muted-foreground">
           Loading application details...
         </div>
@@ -39,7 +39,7 @@ export function ApplicationDetail({
 
   if (!application) {
     return (
-      <div className="container mx-auto py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="text-center py-8 text-muted-foreground">
           Application not found
         </div>
@@ -63,7 +63,7 @@ export function ApplicationDetail({
   };
 
   return (
-    <div className="container mx-auto py-8 space-y-6">
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
       <div className="flex items-center justify-between">
         <Button onClick={onBack} variant="outline">
           <ArrowLeft className="mr-2 h-4 w-4" />
