@@ -61,7 +61,7 @@ export function ApplicationDetail({
 
   const copyLink = () => {
     if (shareableUrl) {
-      navigator.clipboard.writeText(shareableUrl);
+      void navigator.clipboard.writeText(shareableUrl);
       toast.success("Shareable link copied to clipboard");
     }
   };
@@ -126,13 +126,13 @@ export function ApplicationDetail({
               <div>
                 <p className="text-muted-foreground text-sm">Phone</p>
                 <p className="font-medium">
-                  {application.phoneNumber || "Not provided"}
+                  {application.phoneNumber ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">Birth Year</p>
                 <p className="font-medium">
-                  {application.birthYear || "Not provided"}
+                  {application.birthYear ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -140,7 +140,7 @@ export function ApplicationDetail({
                   Country of Origin
                 </p>
                 <p className="font-medium">
-                  {application.countryOfOrigin || "Not provided"}
+                  {application.countryOfOrigin ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -152,13 +152,13 @@ export function ApplicationDetail({
               <div>
                 <p className="text-muted-foreground text-sm">City</p>
                 <p className="font-medium">
-                  {application.city || "Not provided"}
+                  {application.city ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">Time Zone</p>
                 <p className="font-medium">
-                  {application.timeZone || "Not provided"}
+                  {application.timeZone ?? "Not provided"}
                 </p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export function ApplicationDetail({
                   Current Job Status
                 </p>
                 <p className="font-medium">
-                  {application.currentJobStatus || "Not provided"}
+                  {application.currentJobStatus ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -185,19 +185,19 @@ export function ApplicationDetail({
                   Highest Education Level
                 </p>
                 <p className="font-medium">
-                  {application.highestFormalEducationLevel || "Not provided"}
+                  {application.highestFormalEducationLevel ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">Availability</p>
                 <p className="font-medium">
-                  {application.availability || "Not provided"}
+                  {application.availability ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-muted-foreground text-sm">Hours Per Week</p>
                 <p className="font-medium">
-                  {application.hoursPerWeek || "Not provided"}
+                  {application.hoursPerWeek ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -266,10 +266,10 @@ export function ApplicationDetail({
                       <div className="mb-2 flex items-start justify-between">
                         <div>
                           <p className="font-semibold">
-                            {exp.position || "Position not specified"}
+                            {exp.position ?? "Position not specified"}
                           </p>
                           <p className="text-muted-foreground text-sm">
-                            {exp.company || "Company not specified"}
+                            {exp.company ?? "Company not specified"}
                           </p>
                         </div>
                         <Badge variant="secondary">
@@ -327,7 +327,7 @@ export function ApplicationDetail({
           )}
 
           {/* Files */}
-          {(application.resumeUrl || application.videoUrl) && (
+          {(application.resumeUrl ?? application.videoUrl) && (
             <>
               <Separator />
               <div>

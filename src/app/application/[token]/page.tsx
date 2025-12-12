@@ -48,9 +48,16 @@ export default async function PublicApplicationPage({
 
   const applicationData = {
     ...app,
+    availableFrom: app.availableFrom ? new Date(app.availableFrom) : null,
+    createdAt: new Date(app.createdAt),
+    updatedAt: new Date(app.updatedAt),
+    tags: app.tags ?? [],
     languages,
     skills,
-    experiences,
+    experiences: experiences.map((exp) => ({
+      ...exp,
+      achievements: exp.achievements ?? [],
+    })),
     socials,
   };
 

@@ -28,14 +28,14 @@ interface ApplicationListProps {
   applications: Application[];
   isLoading: boolean;
   onSelectApplication: (id: string) => void;
-  onRefresh: () => void;
+  onRefresh?: () => void;
 }
 
 export function ApplicationList({
   applications,
   isLoading,
   onSelectApplication,
-  onRefresh,
+  onRefresh: _onRefresh,
 }: ApplicationListProps) {
   if (isLoading) {
     return (
@@ -119,7 +119,7 @@ export function ApplicationList({
                       onClick={(e) => {
                         e.stopPropagation();
                         const url = `${window.location.origin}/application/${app.publicToken}`;
-                        navigator.clipboard.writeText(url);
+                        void navigator.clipboard.writeText(url);
                       }}
                       title="Copy shareable link"
                     >

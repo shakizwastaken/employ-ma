@@ -89,19 +89,19 @@ export function PublicApplicationView({
               <div>
                 <p className="text-sm text-muted-foreground">Phone</p>
                 <p className="font-medium">
-                  {application.phoneNumber || "Not provided"}
+                  {application.phoneNumber ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Birth Year</p>
                 <p className="font-medium">
-                  {application.birthYear || "Not provided"}
+                  {application.birthYear ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Country of Origin</p>
                 <p className="font-medium">
-                  {application.countryOfOrigin || "Not provided"}
+                  {application.countryOfOrigin ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -113,13 +113,13 @@ export function PublicApplicationView({
               <div>
                 <p className="text-sm text-muted-foreground">City</p>
                 <p className="font-medium">
-                  {application.city || "Not provided"}
+                  {application.city ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Time Zone</p>
                 <p className="font-medium">
-                  {application.timeZone || "Not provided"}
+                  {application.timeZone ?? "Not provided"}
                 </p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export function PublicApplicationView({
               <div>
                 <p className="text-sm text-muted-foreground">Current Job Status</p>
                 <p className="font-medium">
-                  {application.currentJobStatus || "Not provided"}
+                  {application.currentJobStatus ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -144,19 +144,19 @@ export function PublicApplicationView({
                   Highest Education Level
                 </p>
                 <p className="font-medium">
-                  {application.highestFormalEducationLevel || "Not provided"}
+                  {application.highestFormalEducationLevel ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Availability</p>
                 <p className="font-medium">
-                  {application.availability || "Not provided"}
+                  {application.availability ?? "Not provided"}
                 </p>
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Hours Per Week</p>
                 <p className="font-medium">
-                  {application.hoursPerWeek || "Not provided"}
+                  {application.hoursPerWeek ?? "Not provided"}
                 </p>
               </div>
               <div>
@@ -225,10 +225,10 @@ export function PublicApplicationView({
                       <div className="flex justify-between items-start mb-2">
                         <div>
                           <p className="font-semibold">
-                            {exp.position || "Position not specified"}
+                            {exp.position ?? "Position not specified"}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {exp.company || "Company not specified"}
+                            {exp.company ?? "Company not specified"}
                           </p>
                         </div>
                         <Badge variant="secondary">
@@ -282,7 +282,7 @@ export function PublicApplicationView({
           )}
 
           {/* Files */}
-          {(application.resumeUrl || application.videoUrl) && (
+          {(application.resumeUrl ?? application.videoUrl) && (
             <>
               <Separator />
               <div>
