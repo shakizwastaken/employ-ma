@@ -87,7 +87,7 @@ export function HomeClient() {
             </form>
           </div>
           <CardFooter>
-            <CardDescription>
+            <CardDescription className="text-center">
               Need help? Contact us at <strong>yahya@drip.ma</strong>
             </CardDescription>
           </CardFooter>
