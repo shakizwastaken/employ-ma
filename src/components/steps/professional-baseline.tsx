@@ -16,10 +16,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 import { getCategorySuggestions } from "@/lib/category-suggestions";
+
+const PORTFOLIO_REQUIRED_CATEGORIES = [
+  "Frontend Developer",
+  "Backend Developer",
+  "Full-Stack Developer",
+  "UI/UX Designer",
+  "Graphic Designer",
+];
+
+const VIDEO_EDITOR_CATEGORY = "Video Editor";
 
 const educationLevels = [
   { value: "bachelor", label: "Bachelor's Degree" },
@@ -260,7 +271,30 @@ function CategoryInput({
 }
 
 export function Step2ProfessionalBaseline() {
-  const { control } = useFormContext<ApplicationFormData>();
+  const { control, watch, setValue } = useFormContext<ApplicationFormData>();
+  const category = watch("category");
+  const portfolioLinks = watch("portfolioLinks") ?? [];
+  const [linkInput, setLinkInput] = useState("");
+
+  const requiresPortfolio = category
+    ? PORTFOLIO_REQUIRED_CATEGORIES.includes(category)
+    : false;
+  const isVideoEditor = category === VIDEO_EDITOR_CATEGORY;
+  const showPortfolioLinks = requiresPortfolio || isVideoEditor;
+
+  const handleAddPortfolioLink = () => {
+    if (linkInput.trim() && !portfolioLinks.includes(linkInput.trim())) {
+      setValue("portfolioLinks", [...portfolioLinks, linkInput.trim()]);
+      setLinkInput("");
+    }
+  };
+
+  const handleRemovePortfolioLink = (linkToRemove: string) => {
+    setValue(
+      "portfolioLinks",
+      portfolioLinks.filter((link: string) => link !== linkToRemove),
+    );
+  };
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -345,6 +379,78 @@ export function Step2ProfessionalBaseline() {
             />
           )}
         />
+
+        {showPortfolioLinks && (
+          <Controller
+            name="portfolioLinks"
+            control={control}
+            render={({ fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel>
+                  Portfolio / Previous Project Links
+                  {requiresPortfolio && (
+                    <span className="text-destructive"> *</span>
+                  )}
+                  {isVideoEditor && (
+                    <span className="text-muted-foreground text-xs font-normal">
+                      {" "}
+                      (Required if no portfolio file is uploaded)
+                    </span>
+                  )}
+                </FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  {portfolioLinks.map((link: string) => (
+                    <span
+                      key={link}
+                      className="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+                    >
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        {link}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => handleRemovePortfolioLink(link)}
+                        className="hover:text-destructive"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <Input
+                    value={linkInput}
+                    onChange={(e) => setLinkInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        handleAddPortfolioLink();
+                      }
+                    }}
+                    placeholder="Add portfolio or project URL"
+                    type="url"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddPortfolioLink}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+        )}
       </FieldGroup>
     </div>
   );

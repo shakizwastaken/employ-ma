@@ -43,6 +43,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
       socialProfiles: [],
       skills: [],
       experiences: [],
+      portfolioLinks: [],
     },
   });
 
@@ -160,8 +161,9 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
         fieldsToValidate = ["languages"];
         break;
       case 5:
-        // Step 5 is optional (LinkedIn and social profiles)
-        return true;
+        // Step 5 requires at least one social profile
+        fieldsToValidate = ["socialProfiles", "linkedinUrl"];
+        break;
       case 6:
         fieldsToValidate = ["availability", "expectedSalary"];
         break;

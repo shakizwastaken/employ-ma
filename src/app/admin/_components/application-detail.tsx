@@ -326,6 +326,56 @@ export function ApplicationDetail({
             </>
           )}
 
+          {/* Portfolio */}
+          {(application.portfolioLinks &&
+            application.portfolioLinks.length > 0) ||
+          application.portfolioFileUrl ? (
+            <>
+              <Separator />
+              <div>
+                <h3 className="mb-4 text-lg font-semibold">Portfolio</h3>
+                <div className="space-y-2">
+                  {application.portfolioLinks &&
+                    application.portfolioLinks.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-sm">
+                          Portfolio Links
+                        </p>
+                        <div className="space-y-1">
+                          {application.portfolioLinks.map((link, idx) => (
+                            <a
+                              key={idx}
+                              href={link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-primary block text-sm hover:underline"
+                            >
+                              {link}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  {application.portfolioFileUrl && (
+                    <div>
+                      <p className="text-muted-foreground text-sm">
+                        Portfolio File
+                      </p>
+                      <a
+                        href={application.portfolioFileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary text-sm hover:underline"
+                      >
+                        View Portfolio File
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : null}
+
           {/* Files */}
           {(application.resumeUrl ?? application.videoUrl) && (
             <>

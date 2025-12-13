@@ -66,6 +66,8 @@ export const applicationRouter = createTRPCRouter({
             expectedSalary: input.expectedSalary,
             resumeUrl: input.resumeUrl ?? null,
             videoUrl: input.videoUrl ?? null,
+            portfolioLinks: input.portfolioLinks ?? [],
+            portfolioFileUrl: input.portfolioFileUrl ?? null,
             notes: input.notes ?? null,
             category: input.category,
             status: "active",

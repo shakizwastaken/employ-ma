@@ -46,9 +46,13 @@ export function Step5SocialProfiles() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl sm:text-2xl font-semibold">Social Profiles</h2>
-        <p className="text-muted-foreground text-sm sm:text-base mt-1">
-          Share your professional social media profiles
+        <h2 className="text-xl font-semibold sm:text-2xl">Social Profiles</h2>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+          Share your professional social media profiles{" "}
+          <span className="text-destructive">*</span>
+        </p>
+        <p className="text-muted-foreground mt-1 text-xs">
+          At least one social profile is required
         </p>
       </div>
 
@@ -58,9 +62,7 @@ export function Step5SocialProfiles() {
           control={control}
           render={({ field, fieldState }) => (
             <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="linkedinUrl">
-                LinkedIn URL
-              </FieldLabel>
+              <FieldLabel htmlFor="linkedinUrl">LinkedIn URL</FieldLabel>
               <Input
                 {...field}
                 id="linkedinUrl"

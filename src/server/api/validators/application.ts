@@ -72,6 +72,13 @@ export const step2Schema = z.object({
     .string()
     .min(1, "Please select or enter your specialization")
     .max(200, "Specialization must be less than 200 characters"),
+  portfolioLinks: z
+    .array(
+      z
+        .string()
+        .url("Please enter a valid URL (e.g., https://example.com)"),
+    )
+    .default([]),
 });
 
 // Step 3: Personal Profile
@@ -169,6 +176,17 @@ export const step5Schema = z
     {
       message:
         "You cannot add the same platform twice. Please remove the duplicate.",
+      path: ["socialProfiles"],
+    },
+  )
+  .refine(
+    (data) => {
+      const hasLinkedIn = data.linkedinUrl && data.linkedinUrl.trim() !== "";
+      const hasSocialProfiles = data.socialProfiles.length > 0;
+      return hasLinkedIn || hasSocialProfiles;
+    },
+    {
+      message: "At least one social profile is required",
       path: ["socialProfiles"],
     },
   );
@@ -348,6 +366,11 @@ export const step9Schema = z.object({
     )
     .optional()
     .or(z.literal("")),
+  portfolioFileUrl: z
+    .string()
+    .url("Please enter a valid file URL")
+    .optional()
+    .or(z.literal("")),
   notes: z
     .string()
     .max(5000, "Additional notes must be less than 5000 characters")
@@ -356,6 +379,17 @@ export const step9Schema = z.object({
 
 // Step 10: Review (no additional fields)
 export const step10Schema = z.object({});
+
+// Category constants for validation
+const PORTFOLIO_REQUIRED_CATEGORIES = [
+  "Frontend Developer",
+  "Backend Developer",
+  "Full-Stack Developer",
+  "UI/UX Designer",
+  "Graphic Designer",
+];
+
+const VIDEO_EDITOR_CATEGORY = "Video Editor";
 
 // Combined form schema for submission
 export const applicationFormSchema = step1Schema
@@ -378,6 +412,55 @@ export const applicationFormSchema = step1Schema
     {
       message: "Please specify how many hours per week you're available",
       path: ["hoursPerWeek"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Require portfolio links for specific categories
+      if (PORTFOLIO_REQUIRED_CATEGORIES.includes(data.category)) {
+        return data.portfolioLinks.length >= 1;
+      }
+      return true;
+    },
+    {
+      message:
+        "At least one portfolio or previous project link is required for this category",
+      path: ["portfolioLinks"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Require portfolio link OR file for Video Editor
+      if (data.category === VIDEO_EDITOR_CATEGORY) {
+        const hasPortfolioLink = data.portfolioLinks.length >= 1;
+        const hasPortfolioFile =
+          data.portfolioFileUrl && data.portfolioFileUrl.trim() !== "";
+        return hasPortfolioLink || hasPortfolioFile;
+      }
+      return true;
+    },
+    {
+      message:
+        "For Video Editor category, you must provide at least one portfolio link or upload a portfolio file",
+      path: ["portfolioLinks"],
+    },
+  )
+  .refine(
+    (data) => {
+      // Ensure applicants have work evidence: portfolio OR resume OR experiences OR skills
+      const hasPortfolio =
+        data.portfolioLinks.length > 0 ||
+        (data.portfolioFileUrl && data.portfolioFileUrl.trim() !== "");
+      const hasResume = data.resumeUrl && data.resumeUrl.trim() !== "";
+      const hasExperiences = data.experiences.length > 0;
+      const hasSkills = data.skills.length > 0;
+
+      return hasPortfolio || hasResume || hasExperiences || hasSkills;
+    },
+    {
+      message:
+        "You must provide at least one of the following: portfolio links/file, resume, work experiences, or skills",
+      path: ["portfolioLinks"],
     },
   );
 

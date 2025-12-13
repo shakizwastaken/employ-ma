@@ -197,6 +197,9 @@ export const application = pgTable(
     resumeUrl: text("resume_url"),
     videoUrl: text("video_url"),
 
+    portfolioLinks: text("portfolio_links").array().default([]),
+    portfolioFileUrl: text("portfolio_file_url"),
+
     expectedSalary: numeric("expected_salary", {
       mode: "number",
       precision: 10,
