@@ -306,16 +306,22 @@ export function ApplicationDetail({
             <>
               <Separator />
               <div>
-                <h3 className="mb-4 text-lg font-semibold">Social Profiles</h3>
+                <h3 className="mb-4 text-lg font-semibold">
+                  Social Profiles ({application.socials.length})
+                </h3>
                 <div className="space-y-2">
                   {application.socials.map((social) => (
-                    <div key={social.id} className="flex items-center gap-2">
+                    <div
+                      key={social.id}
+                      className="flex items-center gap-2 rounded-md border p-2"
+                    >
                       <Badge variant="outline">{social.platform}</Badge>
+                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
                       <a
                         href={social.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary text-sm hover:underline"
+                        className="text-primary flex-1 break-all text-sm hover:underline"
                       >
                         {social.url}
                       </a>
@@ -334,41 +340,49 @@ export function ApplicationDetail({
               <Separator />
               <div>
                 <h3 className="mb-4 text-lg font-semibold">Portfolio</h3>
-                <div className="space-y-2">
+                <div className="space-y-4">
                   {application.portfolioLinks &&
                     application.portfolioLinks.length > 0 && (
                       <div>
-                        <p className="text-muted-foreground text-sm">
-                          Portfolio Links
+                        <p className="text-muted-foreground mb-2 text-sm font-medium">
+                          Portfolio Links ({application.portfolioLinks.length})
                         </p>
-                        <div className="space-y-1">
+                        <div className="space-y-2">
                           {application.portfolioLinks.map((link, idx) => (
-                            <a
+                            <div
                               key={idx}
-                              href={link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-primary block text-sm hover:underline"
+                              className="flex items-center gap-2 rounded-md border p-2"
                             >
-                              {link}
-                            </a>
+                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                              <a
+                                href={link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-primary flex-1 break-all text-sm hover:underline"
+                              >
+                                {link}
+                              </a>
+                            </div>
                           ))}
                         </div>
                       </div>
                     )}
                   {application.portfolioFileUrl && (
                     <div>
-                      <p className="text-muted-foreground text-sm">
+                      <p className="text-muted-foreground mb-2 text-sm font-medium">
                         Portfolio File
                       </p>
-                      <a
-                        href={application.portfolioFileUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary text-sm hover:underline"
-                      >
-                        View Portfolio File
-                      </a>
+                      <div className="flex items-center gap-2 rounded-md border p-2">
+                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <a
+                          href={application.portfolioFileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary text-sm hover:underline"
+                        >
+                          View Portfolio File
+                        </a>
+                      </div>
                     </div>
                   )}
                 </div>
