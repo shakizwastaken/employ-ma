@@ -38,6 +38,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
     // @ts-expect-error - Known type issue with zodResolver and complex schemas
     resolver: zodResolver(applicationFormSchema),
     mode: "onChange",
+    reValidateMode: "onChange",
     defaultValues: {
       languages: [{ name: "English", proficiency: "intermediate" }],
       socialProfiles: [],
@@ -218,7 +219,12 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
   };
 
   const handleSubmit = async () => {
-    const isValid = await form.trigger();
+    // Clear any previous submission errors first
+    form.clearErrors();
+    
+    // Trigger validation on all fields to ensure fresh validation state
+    const isValid = await form.trigger(undefined, { shouldFocus: false });
+    
     if (!isValid) {
       // Extract errors and navigate to first error step
       const errors = form.formState.errors;
@@ -259,9 +265,14 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
       processErrors(errors as Record<string, unknown>);
 
       const errorStep = getFirstErrorStep(errorPaths);
-      if (errorStep) {
+      if (errorStep && errorStep !== currentStep) {
         setCurrentStep(errorStep);
         window.scrollTo({ top: 0, behavior: "smooth" });
+        toast.error("Please fix the errors below", {
+          description: "Some fields need attention before submission.",
+        });
+      } else if (errorStep) {
+        // Already on the error step, just show the message
         toast.error("Please fix the errors below", {
           description: "Some fields need attention before submission.",
         });

@@ -29,7 +29,8 @@ export function getStepFromFieldPath(path: FieldPath): number | null {
   if (
     firstSegment === "highestFormalEducationLevel" ||
     firstSegment === "currentJobStatus" ||
-    firstSegment === "category"
+    firstSegment === "category" ||
+    firstSegment === "portfolioLinks"
   ) {
     return 2;
   }
@@ -78,6 +79,7 @@ export function getStepFromFieldPath(path: FieldPath): number | null {
   if (
     firstSegment === "resumeUrl" ||
     firstSegment === "videoUrl" ||
+    firstSegment === "portfolioFileUrl" ||
     firstSegment === "notes"
   ) {
     return 9;

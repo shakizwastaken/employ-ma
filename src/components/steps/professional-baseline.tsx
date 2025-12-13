@@ -271,7 +271,8 @@ function CategoryInput({
 }
 
 export function Step2ProfessionalBaseline() {
-  const { control, watch, setValue } = useFormContext<ApplicationFormData>();
+  const { control, watch, setValue, trigger, clearErrors } =
+    useFormContext<ApplicationFormData>();
   const category = watch("category");
   const portfolioLinks = watch("portfolioLinks") ?? [];
   const [linkInput, setLinkInput] = useState("");
@@ -282,18 +283,27 @@ export function Step2ProfessionalBaseline() {
   const isVideoEditor = category === VIDEO_EDITOR_CATEGORY;
   const showPortfolioLinks = requiresPortfolio || isVideoEditor;
 
-  const handleAddPortfolioLink = () => {
+  const handleAddPortfolioLink = async () => {
     if (linkInput.trim() && !portfolioLinks.includes(linkInput.trim())) {
-      setValue("portfolioLinks", [...portfolioLinks, linkInput.trim()]);
+      const newLinks = [...portfolioLinks, linkInput.trim()];
+      // Clear errors first, then set value with validation
+      clearErrors("portfolioLinks");
+      setValue("portfolioLinks", newLinks, { shouldValidate: true });
       setLinkInput("");
+      // Trigger validation on the field and related root-level validations
+      await trigger(["portfolioLinks", "category"]);
     }
   };
 
-  const handleRemovePortfolioLink = (linkToRemove: string) => {
-    setValue(
-      "portfolioLinks",
-      portfolioLinks.filter((link: string) => link !== linkToRemove),
+  const handleRemovePortfolioLink = async (linkToRemove: string) => {
+    const newLinks = portfolioLinks.filter(
+      (link: string) => link !== linkToRemove,
     );
+    // Clear errors first, then set value with validation
+    clearErrors("portfolioLinks");
+    setValue("portfolioLinks", newLinks, { shouldValidate: true });
+    // Trigger validation on the field and related root-level validations
+    await trigger(["portfolioLinks", "category"]);
   };
 
   return (

@@ -72,13 +72,7 @@ export const step2Schema = z.object({
     .string()
     .min(1, "Please select or enter your specialization")
     .max(200, "Specialization must be less than 200 characters"),
-  portfolioLinks: z
-    .array(
-      z
-        .string()
-        .url("Please enter a valid URL (e.g., https://example.com)"),
-    )
-    .default([]),
+  portfolioLinks: z.array(z.string().min(1, "Link cannot be empty")).default([]),
 });
 
 // Step 3: Personal Profile
