@@ -19,6 +19,13 @@ export function AdminDashboardClient() {
     searchField: "name" as "name" | "email" | "category",
     filterStatus: "",
     filterCategory: "",
+    filterMinSkills: false,
+    filterMinExperiences: false,
+    filterMinSocials: false,
+    filterHasPortfolio: false,
+    filterHasNote: false,
+    filterHasResume: false,
+    filterHasVideo: false,
     limit: 50,
     offset: 0,
   });

@@ -309,8 +309,10 @@ export function Step2ProfessionalBaseline() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h2 className="text-xl sm:text-2xl font-semibold">Professional Baseline</h2>
-        <p className="text-muted-foreground text-sm sm:text-base mt-1">
+        <h2 className="text-xl font-semibold sm:text-2xl">
+          Professional Baseline
+        </h2>
+        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
           Tell us about your professional background
         </p>
       </div>

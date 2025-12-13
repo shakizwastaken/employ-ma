@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 
@@ -22,6 +22,13 @@ const listApplicationsSchema = z.object({
   sortDirection: z.enum(["asc", "desc"]).default("desc"),
   filterStatus: z.string().optional(),
   filterCategory: z.string().optional(),
+  filterMinSkills: z.boolean().default(false),
+  filterMinExperiences: z.boolean().default(false),
+  filterMinSocials: z.boolean().default(false),
+  filterHasPortfolio: z.boolean().default(false),
+  filterHasNote: z.boolean().default(false),
+  filterHasResume: z.boolean().default(false),
+  filterHasVideo: z.boolean().default(false),
 });
 
 export const adminRouter = createTRPCRouter({
@@ -74,17 +81,39 @@ export const adminRouter = createTRPCRouter({
         conditions.push(eq(application.category, input.filterCategory));
       }
 
+      // Check if any advanced filters are enabled
+      const hasAdvancedFilters =
+        input.filterMinSkills ||
+        input.filterMinExperiences ||
+        input.filterMinSocials ||
+        input.filterHasPortfolio ||
+        input.filterHasNote ||
+        input.filterHasResume ||
+        input.filterHasVideo;
+
+      // Add SQL-level filters that can be done directly
+      if (input.filterHasNote) {
+        conditions.push(
+          sql`${application.notes} IS NOT NULL AND ${application.notes} != ''`,
+        );
+      }
+
+      if (input.filterHasResume) {
+        conditions.push(
+          sql`${application.resumeUrl} IS NOT NULL AND ${application.resumeUrl} != ''`,
+        );
+      }
+
+      if (input.filterHasVideo) {
+        conditions.push(
+          sql`${application.videoUrl} IS NOT NULL AND ${application.videoUrl} != ''`,
+        );
+      }
+
       const whereClause =
         conditions.length > 0 ? and(...conditions) : undefined;
 
-      // Get total count
-      const totalResult = await ctx.db
-        .select({ count: sql<number>`count(*)` })
-        .from(application)
-        .where(whereClause);
-      const total = Number(totalResult[0]?.count ?? 0);
-
-      // Get applications
+      // Get applications first
       const orderBy =
         input.sortBy === "createdAt"
           ? input.sortDirection === "asc"
@@ -96,13 +125,237 @@ export const adminRouter = createTRPCRouter({
               : desc(application.firstName)
             : desc(application.createdAt);
 
-      const applications = await ctx.db
+      let applications = await ctx.db
         .select()
         .from(application)
         .where(whereClause)
         .orderBy(orderBy)
-        .limit(input.limit)
-        .offset(input.offset);
+        .limit(hasAdvancedFilters ? input.limit * 3 : input.limit) // Get more to account for filtering
+        .offset(hasAdvancedFilters ? 0 : input.offset); // Apply offset after filtering if needed
+
+      // If any advanced filters requiring related data or portfolio, filter further
+      if (
+        hasAdvancedFilters &&
+        (input.filterMinSkills ||
+          input.filterMinExperiences ||
+          input.filterMinSocials ||
+          input.filterHasPortfolio) &&
+        applications.length > 0
+      ) {
+        const applicationIds = applications.map((app) => app.id);
+
+        // Get counts for each application
+        const queries = [];
+        if (input.filterMinSkills) {
+          queries.push(
+            ctx.db
+              .select({
+                applicationId: skill.applicationId,
+                count: sql<number>`count(*)`,
+              })
+              .from(skill)
+              .where(inArray(skill.applicationId, applicationIds))
+              .groupBy(skill.applicationId),
+          );
+        }
+        if (input.filterMinExperiences) {
+          queries.push(
+            ctx.db
+              .select({
+                applicationId: experience.applicationId,
+                count: sql<number>`count(*)`,
+              })
+              .from(experience)
+              .where(inArray(experience.applicationId, applicationIds))
+              .groupBy(experience.applicationId),
+          );
+        }
+        if (input.filterMinSocials) {
+          queries.push(
+            ctx.db
+              .select({
+                applicationId: social.applicationId,
+                count: sql<number>`count(*)`,
+              })
+              .from(social)
+              .where(inArray(social.applicationId, applicationIds))
+              .groupBy(social.applicationId),
+          );
+        }
+
+        const results = await Promise.all(queries);
+
+        // Create maps for quick lookup
+        const skillMap = new Map<string, number>();
+        const experienceMap = new Map<string, number>();
+        const socialMap = new Map<string, number>();
+
+        let resultIndex = 0;
+        if (input.filterMinSkills) {
+          results[resultIndex]!.forEach((s) => {
+            skillMap.set(s.applicationId, Number(s.count));
+          });
+          resultIndex++;
+        }
+        if (input.filterMinExperiences) {
+          results[resultIndex]!.forEach((e) => {
+            experienceMap.set(e.applicationId, Number(e.count));
+          });
+          resultIndex++;
+        }
+        if (input.filterMinSocials) {
+          results[resultIndex]!.forEach((s) => {
+            socialMap.set(s.applicationId, Number(s.count));
+          });
+        }
+
+        // Filter applications based on selected criteria
+        applications = applications.filter((app) => {
+          if (input.filterMinSkills) {
+            const hasSkills = (skillMap.get(app.id) ?? 0) >= 1;
+            if (!hasSkills) return false;
+          }
+          if (input.filterMinExperiences) {
+            const hasExperiences = (experienceMap.get(app.id) ?? 0) >= 1;
+            if (!hasExperiences) return false;
+          }
+          if (input.filterMinSocials) {
+            const hasSocials = (socialMap.get(app.id) ?? 0) >= 1;
+            if (!hasSocials) return false;
+          }
+          if (input.filterHasPortfolio) {
+            const hasPortfolio =
+              (app.portfolioLinks && app.portfolioLinks.length > 0) ||
+              (app.portfolioFileUrl &&
+                app.portfolioFileUrl.trim() !== "");
+            if (!hasPortfolio) return false;
+          }
+          return true;
+        });
+
+        // Apply limit and offset after filtering
+        applications = applications.slice(
+          input.offset,
+          input.offset + input.limit,
+        );
+      } else if (hasAdvancedFilters && applications.length === 0) {
+        applications = [];
+      }
+
+      // Get total count
+      let total: number;
+      if (
+        hasAdvancedFilters &&
+        (input.filterMinSkills ||
+          input.filterMinExperiences ||
+          input.filterMinSocials ||
+          input.filterHasPortfolio)
+      ) {
+        // Need to count with filters applied
+        const allMatching = await ctx.db
+          .select()
+          .from(application)
+          .where(whereClause)
+          .limit(10000);
+
+        const allIds = allMatching.map((app) => app.id);
+
+        if (allIds.length === 0) {
+          total = 0;
+        } else {
+          const countQueries = [];
+          if (input.filterMinSkills) {
+            countQueries.push(
+              ctx.db
+                .select({
+                  applicationId: skill.applicationId,
+                  count: sql<number>`count(*)`,
+                })
+                .from(skill)
+                .where(inArray(skill.applicationId, allIds))
+                .groupBy(skill.applicationId),
+            );
+          }
+          if (input.filterMinExperiences) {
+            countQueries.push(
+              ctx.db
+                .select({
+                  applicationId: experience.applicationId,
+                  count: sql<number>`count(*)`,
+                })
+                .from(experience)
+                .where(inArray(experience.applicationId, allIds))
+                .groupBy(experience.applicationId),
+            );
+          }
+          if (input.filterMinSocials) {
+            countQueries.push(
+              ctx.db
+                .select({
+                  applicationId: social.applicationId,
+                  count: sql<number>`count(*)`,
+                })
+                .from(social)
+                .where(inArray(social.applicationId, allIds))
+                .groupBy(social.applicationId),
+            );
+          }
+
+          const countResults = await Promise.all(countQueries);
+
+          const allSkillMap = new Map<string, number>();
+          const allExpMap = new Map<string, number>();
+          const allSocialMap = new Map<string, number>();
+
+          let countIndex = 0;
+          if (input.filterMinSkills) {
+            countResults[countIndex]!.forEach((s) => {
+              allSkillMap.set(s.applicationId, Number(s.count));
+            });
+            countIndex++;
+          }
+          if (input.filterMinExperiences) {
+            countResults[countIndex]!.forEach((e) => {
+              allExpMap.set(e.applicationId, Number(e.count));
+            });
+            countIndex++;
+          }
+          if (input.filterMinSocials) {
+            countResults[countIndex]!.forEach((s) => {
+              allSocialMap.set(s.applicationId, Number(s.count));
+            });
+          }
+
+          total = allMatching.filter((app) => {
+            if (input.filterMinSkills) {
+              const hasSkills = (allSkillMap.get(app.id) ?? 0) >= 1;
+              if (!hasSkills) return false;
+            }
+            if (input.filterMinExperiences) {
+              const hasExperiences = (allExpMap.get(app.id) ?? 0) >= 1;
+              if (!hasExperiences) return false;
+            }
+            if (input.filterMinSocials) {
+              const hasSocials = (allSocialMap.get(app.id) ?? 0) >= 1;
+              if (!hasSocials) return false;
+            }
+            if (input.filterHasPortfolio) {
+              const hasPortfolio =
+                (app.portfolioLinks && app.portfolioLinks.length > 0) ||
+                (app.portfolioFileUrl &&
+                  app.portfolioFileUrl.trim() !== "");
+              if (!hasPortfolio) return false;
+            }
+            return true;
+          }).length;
+        }
+      } else {
+        const totalResult = await ctx.db
+          .select({ count: sql<number>`count(*)` })
+          .from(application)
+          .where(whereClause);
+        total = Number(totalResult[0]?.count ?? 0);
+      }
 
       return {
         applications,
@@ -177,7 +430,7 @@ export const adminRouter = createTRPCRouter({
       if (input.isPublic) {
         // Generate unique token
         publicToken = randomBytes(32).toString("hex");
-        
+
         // Ensure uniqueness
         let exists = true;
         while (exists) {
@@ -205,9 +458,10 @@ export const adminRouter = createTRPCRouter({
 
       return {
         ...updated,
-        shareableUrl: input.isPublic && publicToken
-          ? `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/application/${publicToken}`
-          : null,
+        shareableUrl:
+          input.isPublic && publicToken
+            ? `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/application/${publicToken}`
+            : null,
       };
     }),
 
@@ -305,9 +559,13 @@ export const adminRouter = createTRPCRouter({
           videoUrl: app.videoUrl ?? "",
           notes: app.notes ?? "",
           tags: app.tags?.join("; ") ?? "",
-          languages: app.languages.map((l) => `${l.name} (${l.proficiency})`).join("; "),
+          languages: app.languages
+            .map((l) => `${l.name} (${l.proficiency})`)
+            .join("; "),
           skills: app.skills.map((s) => s.name).join("; "),
-          experiences: app.experiences.map((e) => `${e.position} at ${e.company}`).join("; "),
+          experiences: app.experiences
+            .map((e) => `${e.position} at ${e.company}`)
+            .join("; "),
           socials: app.socials.map((s) => `${s.platform}: ${s.url}`).join("; "),
           createdAt: app.createdAt.toISOString(),
           updatedAt: app.updatedAt.toISOString(),
@@ -339,4 +597,3 @@ export const adminRouter = createTRPCRouter({
       };
     }),
 });
-

@@ -221,10 +221,10 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
   const handleSubmit = async () => {
     // Clear any previous submission errors first
     form.clearErrors();
-    
+
     // Trigger validation on all fields to ensure fresh validation state
     const isValid = await form.trigger(undefined, { shouldFocus: false });
-    
+
     if (!isValid) {
       // Extract errors and navigate to first error step
       const errors = form.formState.errors;
