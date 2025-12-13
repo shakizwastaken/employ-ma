@@ -177,9 +177,12 @@ export const step5Schema = z
   )
   .refine(
     (data) => {
-      const hasLinkedIn = data.linkedinUrl && data.linkedinUrl.trim() !== "";
+      const hasLinkedIn =
+        data.linkedinUrl !== null &&
+        data.linkedinUrl !== undefined &&
+        data.linkedinUrl.trim() !== "";
       const hasSocialProfiles = data.socialProfiles.length > 0;
-      return hasLinkedIn || hasSocialProfiles;
+      return hasLinkedIn ?? hasSocialProfiles;
     },
     {
       message: "At least one social profile is required",
@@ -444,10 +447,16 @@ export const applicationFormSchema = step1Schema
   .refine(
     (data) => {
       // Ensure applicants have work evidence: portfolio OR resume OR experiences OR skills
-      const hasPortfolio =
-        data.portfolioLinks.length > 0 ||
-        (data.portfolioFileUrl && data.portfolioFileUrl.trim() !== "");
-      const hasResume = data.resumeUrl && data.resumeUrl.trim() !== "";
+      const hasPortfolioLinks = data.portfolioLinks.length > 0;
+      const hasPortfolioFile =
+        data.portfolioFileUrl !== null &&
+        data.portfolioFileUrl !== undefined &&
+        data.portfolioFileUrl.trim() !== "";
+      const hasPortfolio = hasPortfolioLinks || hasPortfolioFile;
+      const hasResume =
+        data.resumeUrl !== null &&
+        data.resumeUrl !== undefined &&
+        data.resumeUrl.trim() !== "";
       const hasExperiences = data.experiences.length > 0;
       const hasSkills = data.skills.length > 0;
 

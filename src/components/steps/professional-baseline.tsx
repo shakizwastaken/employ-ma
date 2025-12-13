@@ -441,7 +441,7 @@ export function Step2ProfessionalBaseline() {
                     onKeyDown={(e) => {
                       if (e.key === "Enter") {
                         e.preventDefault();
-                        handleAddPortfolioLink();
+                        void handleAddPortfolioLink();
                       }
                     }}
                     placeholder="Add portfolio or project URL"

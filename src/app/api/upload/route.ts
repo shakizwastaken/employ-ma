@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
     let allowedTypes: string[];
     let allowedExtensions: string[];
     let maxSize: number;
-    let filePath: string;
     let errorMessage: string;
 
     if (isPortfolio) {
@@ -69,13 +68,15 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now();
     const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
     const fileName = `${timestamp}-${sanitizedName}`;
-    filePath = isPortfolio ? `portfolio-files/${fileName}` : `resumes/${fileName}`;
+    const path = isPortfolio
+      ? `portfolio-files/${fileName}`
+      : `resumes/${fileName}`;
 
     // Upload to Supabase storage
     // Supabase accepts File, Blob, ArrayBuffer, or FormData
     const { error: uploadError } = await supabase.storage
       .from("assets")
-      .upload(filePath, file, {
+      .upload(path, file, {
         contentType: file.type,
         upsert: false,
       });
@@ -91,7 +92,7 @@ export async function POST(request: NextRequest) {
     // Get public URL
     const {
       data: { publicUrl },
-    } = supabase.storage.from("assets").getPublicUrl(filePath);
+    } = supabase.storage.from("assets").getPublicUrl(path);
 
     return NextResponse.json({
       url: publicUrl,

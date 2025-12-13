@@ -224,11 +224,15 @@ export const adminRouter = createTRPCRouter({
             if (!hasSocials) return false;
           }
           if (input.filterHasPortfolio) {
-            const hasPortfolio =
-              (app.portfolioLinks && app.portfolioLinks.length > 0) ||
-              (app.portfolioFileUrl &&
-                app.portfolioFileUrl.trim() !== "");
-            if (!hasPortfolio) return false;
+            const hasPortfolioLinks =
+              app.portfolioLinks !== null &&
+              app.portfolioLinks !== undefined &&
+              app.portfolioLinks.length > 0;
+            const hasPortfolioFile =
+              app.portfolioFileUrl !== null &&
+              app.portfolioFileUrl !== undefined &&
+              app.portfolioFileUrl.trim() !== "";
+            if (!hasPortfolioLinks && !hasPortfolioFile) return false;
           }
           return true;
         });
@@ -340,11 +344,15 @@ export const adminRouter = createTRPCRouter({
               if (!hasSocials) return false;
             }
             if (input.filterHasPortfolio) {
-              const hasPortfolio =
-                (app.portfolioLinks && app.portfolioLinks.length > 0) ||
-                (app.portfolioFileUrl &&
-                  app.portfolioFileUrl.trim() !== "");
-              if (!hasPortfolio) return false;
+              const hasPortfolioLinks =
+                app.portfolioLinks !== null &&
+                app.portfolioLinks !== undefined &&
+                app.portfolioLinks.length > 0;
+              const hasPortfolioFile =
+                app.portfolioFileUrl !== null &&
+                app.portfolioFileUrl !== undefined &&
+                app.portfolioFileUrl.trim() !== "";
+              if (!hasPortfolioLinks && !hasPortfolioFile) return false;
             }
             return true;
           }).length;
