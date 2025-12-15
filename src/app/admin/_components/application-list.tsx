@@ -40,7 +40,18 @@ export function ApplicationList({
 }: ApplicationListProps) {
   const router = useRouter();
 
-  const handleSelectApplication = (id: string) => {
+  const handleRowClick = (
+    id: string,
+    e: React.MouseEvent<HTMLTableRowElement>,
+  ) => {
+    // Handle modifier keys for new tab/window
+    if (e.ctrlKey || e.metaKey || e.button === 1) {
+      // Ctrl/Cmd click or middle click - open in new tab
+      window.open(`/admin/applications/${id}`, "_blank");
+      return;
+    }
+
+    // Regular click - navigate normally
     if (onSelectApplication) {
       onSelectApplication(id);
     } else {
@@ -79,20 +90,26 @@ export function ApplicationList({
         </TableHeader>
         <TableBody>
           {applications.map((app) => (
-            <TableRow key={app.id} className="cursor-pointer hover:bg-muted/50">
-              <TableCell
-                className="font-medium"
-                onClick={() => handleSelectApplication(app.id)}
-              >
+            <TableRow
+              key={app.id}
+              className="cursor-pointer hover:bg-muted/50"
+              onClick={(e) => handleRowClick(app.id, e)}
+              onAuxClick={(e) => {
+                // Handle middle mouse button
+                if (e.button === 1) {
+                  e.preventDefault();
+                  window.open(`/admin/applications/${app.id}`, "_blank");
+                }
+              }}
+            >
+              <TableCell className="font-medium">
                 {app.firstName} {app.lastName}
               </TableCell>
-              <TableCell onClick={() => handleSelectApplication(app.id)}>
-                {app.email}
-              </TableCell>
-              <TableCell onClick={() => handleSelectApplication(app.id)}>
+              <TableCell>{app.email}</TableCell>
+              <TableCell>
                 <Badge variant="secondary">{app.category}</Badge>
               </TableCell>
-              <TableCell onClick={() => handleSelectApplication(app.id)}>
+              <TableCell>
                 <Badge
                   variant={
                     app.status === "active" ? "default" : "secondary"
@@ -101,12 +118,12 @@ export function ApplicationList({
                   {app.status ?? "active"}
                 </Badge>
               </TableCell>
-              <TableCell onClick={() => handleSelectApplication(app.id)}>
+              <TableCell>
                 <Badge variant={app.isPublic ? "default" : "outline"}>
                   {app.isPublic ? "Public" : "Private"}
                 </Badge>
               </TableCell>
-              <TableCell onClick={() => handleSelectApplication(app.id)}>
+              <TableCell>
                 {new Date(app.createdAt).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -118,7 +135,16 @@ export function ApplicationList({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => handleSelectApplication(app.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleRowClick(app.id, e);
+                    }}
+                    onAuxClick={(e) => {
+                      e.stopPropagation();
+                      if (e.button === 1) {
+                        window.open(`/admin/applications/${app.id}`, "_blank");
+                      }
+                    }}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>
