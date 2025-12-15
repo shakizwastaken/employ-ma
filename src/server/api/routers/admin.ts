@@ -8,6 +8,7 @@ import { createTRPCRouter } from "@/server/api/trpc";
 import {
   application,
   experience,
+  favorite,
   language,
   skill,
   social,
@@ -602,6 +603,151 @@ export const adminRouter = createTRPCRouter({
       return {
         format: "csv",
         data: csvLines.join("\n"),
+      };
+    }),
+
+  toggleFavorite: adminProcedure
+    .input(
+      z.object({
+        applicationId: z.string().uuid(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      if (!ctx.session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
+      const userId = ctx.session.user.id;
+
+      // Check if favorite already exists
+      const [existing] = await ctx.db
+        .select()
+        .from(favorite)
+        .where(
+          and(
+            eq(favorite.userId, userId),
+            eq(favorite.applicationId, input.applicationId),
+          ),
+        )
+        .limit(1);
+
+      if (existing) {
+        // Remove favorite
+        await ctx.db
+          .delete(favorite)
+          .where(
+            and(
+              eq(favorite.userId, userId),
+              eq(favorite.applicationId, input.applicationId),
+            ),
+          );
+        return { isFavorite: false };
+      } else {
+        // Add favorite
+        await ctx.db.insert(favorite).values({
+          userId,
+          applicationId: input.applicationId,
+        });
+        return { isFavorite: true };
+      }
+    }),
+
+  getFavoriteStatus: adminProcedure
+    .input(
+      z.object({
+        applicationId: z.string().uuid(),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session?.user?.id) {
+        return { isFavorite: false };
+      }
+
+      const userId = ctx.session.user.id;
+
+      const [existing] = await ctx.db
+        .select()
+        .from(favorite)
+        .where(
+          and(
+            eq(favorite.userId, userId),
+            eq(favorite.applicationId, input.applicationId),
+          ),
+        )
+        .limit(1);
+
+      return { isFavorite: !!existing };
+    }),
+
+  listFavorites: adminProcedure
+    .input(
+      z.object({
+        limit: z.number().min(1).max(100).default(50),
+        offset: z.number().min(0).default(0),
+      }),
+    )
+    .query(async ({ ctx, input }) => {
+      if (!ctx.session?.user?.id) {
+        throw new TRPCError({
+          code: "UNAUTHORIZED",
+          message: "User not authenticated",
+        });
+      }
+
+      const userId = ctx.session.user.id;
+
+      // Get favorite application IDs
+      const favorites = await ctx.db
+        .select({
+          applicationId: favorite.applicationId,
+          favoritedAt: favorite.createdAt,
+        })
+        .from(favorite)
+        .where(eq(favorite.userId, userId))
+        .orderBy(desc(favorite.createdAt))
+        .limit(input.limit)
+        .offset(input.offset);
+
+      if (favorites.length === 0) {
+        return {
+          applications: [],
+          total: 0,
+          limit: input.limit,
+          offset: input.offset,
+        };
+      }
+
+      const applicationIds = favorites.map((f) => f.applicationId);
+
+      // Get applications
+      const applications = await ctx.db
+        .select()
+        .from(application)
+        .where(inArray(application.id, applicationIds));
+
+      // Get total count
+      const totalResult = await ctx.db
+        .select({ count: sql<number>`count(*)` })
+        .from(favorite)
+        .where(eq(favorite.userId, userId));
+      const total = Number(totalResult[0]?.count ?? 0);
+
+      // Sort applications by favorite order
+      const applicationsMap = new Map(
+        applications.map((app) => [app.id, app]),
+      );
+      const sortedApplications = favorites
+        .map((f) => applicationsMap.get(f.applicationId))
+        .filter((app): app is NonNullable<typeof app> => app !== undefined);
+
+      return {
+        applications: sortedApplications,
+        total,
+        limit: input.limit,
+        offset: input.offset,
       };
     }),
 });

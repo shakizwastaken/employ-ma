@@ -3,17 +3,15 @@
 import { useState } from "react";
 import { api } from "@/trpc/react";
 import { ApplicationList } from "./application-list";
-import { ApplicationDetail } from "./application-detail";
 import { FilterBar } from "./filter-bar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, FileText } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Download, FileText, Heart } from "lucide-react";
 import { toast } from "sonner";
 
 export function AdminDashboardClient() {
-  const [selectedApplicationId, setSelectedApplicationId] = useState<
-    string | null
-  >(null);
+  const router = useRouter();
   const [filters, setFilters] = useState({
     searchValue: "",
     searchField: "name" as "name" | "email" | "category",
@@ -72,15 +70,6 @@ export function AdminDashboardClient() {
     });
   };
 
-  if (selectedApplicationId) {
-    return (
-      <ApplicationDetail
-        applicationId={selectedApplicationId}
-        onBack={() => setSelectedApplicationId(null)}
-      />
-    );
-  }
-
   return (
     <div className="container mx-auto space-y-6 px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex items-center justify-between">
@@ -91,6 +80,13 @@ export function AdminDashboardClient() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/admin/favorites")}
+          >
+            <Heart className="mr-2 h-4 w-4" />
+            Staff Favorites
+          </Button>
           <Button
             variant="outline"
             onClick={() => handleExport("csv")}
@@ -124,7 +120,6 @@ export function AdminDashboardClient() {
           <ApplicationList
             applications={data?.applications ?? []}
             isLoading={isLoading}
-            onSelectApplication={setSelectedApplicationId}
             onRefresh={refetch}
           />
         </CardContent>

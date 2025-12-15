@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Copy, ExternalLink } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Heart } from "lucide-react";
 import { PublicLinkToggle } from "./public-link-toggle";
 import { toast } from "sonner";
 
@@ -29,6 +29,27 @@ export function ApplicationDetail({
     isLoading,
     refetch,
   } = api.admin.getApplication.useQuery({ id: applicationId });
+
+  const { data: favoriteStatus, refetch: refetchFavorite } =
+    api.admin.getFavoriteStatus.useQuery({ applicationId });
+
+  const toggleFavoriteMutation = api.admin.toggleFavorite.useMutation({
+    onSuccess: () => {
+      void refetchFavorite();
+      toast.success(
+        favoriteStatus?.isFavorite
+          ? "Removed from favorites"
+          : "Added to favorites",
+      );
+    },
+    onError: (error) => {
+      toast.error(error.message || "Failed to update favorite");
+    },
+  });
+
+  const handleToggleFavorite = () => {
+    toggleFavoriteMutation.mutate({ applicationId });
+  };
 
   if (isLoading) {
     return (
@@ -74,6 +95,18 @@ export function ApplicationDetail({
           Back to List
         </Button>
         <div className="flex items-center gap-4">
+          <Button
+            variant={favoriteStatus?.isFavorite ? "default" : "outline"}
+            onClick={handleToggleFavorite}
+            disabled={toggleFavoriteMutation.isPending}
+          >
+            <Heart
+              className={`mr-2 h-4 w-4 ${
+                favoriteStatus?.isFavorite ? "fill-current" : ""
+              }`}
+            />
+            {favoriteStatus?.isFavorite ? "Favorited" : "Favorite"}
+          </Button>
           <PublicLinkToggle
             applicationId={applicationId}
             isPublic={application.isPublic}
@@ -316,12 +349,12 @@ export function ApplicationDetail({
                       className="flex items-center gap-2 rounded-md border p-2"
                     >
                       <Badge variant="outline">{social.platform}</Badge>
-                      <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                      <ExternalLink className="text-muted-foreground h-4 w-4" />
                       <a
                         href={social.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-primary flex-1 break-all text-sm hover:underline"
+                        className="text-primary flex-1 text-sm break-all hover:underline"
                       >
                         {social.url}
                       </a>
@@ -353,12 +386,12 @@ export function ApplicationDetail({
                               key={idx}
                               className="flex items-center gap-2 rounded-md border p-2"
                             >
-                              <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                              <ExternalLink className="text-muted-foreground h-4 w-4" />
                               <a
                                 href={link}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-primary flex-1 break-all text-sm hover:underline"
+                                className="text-primary flex-1 text-sm break-all hover:underline"
                               >
                                 {link}
                               </a>
@@ -373,7 +406,7 @@ export function ApplicationDetail({
                         Portfolio File
                       </p>
                       <div className="flex items-center gap-2 rounded-md border p-2">
-                        <ExternalLink className="h-4 w-4 text-muted-foreground" />
+                        <ExternalLink className="text-muted-foreground h-4 w-4" />
                         <a
                           href={application.portfolioFileUrl}
                           target="_blank"

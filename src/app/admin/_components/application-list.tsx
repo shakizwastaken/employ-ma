@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import {
   Table,
   TableBody,
@@ -27,7 +28,7 @@ interface Application {
 interface ApplicationListProps {
   applications: Application[];
   isLoading: boolean;
-  onSelectApplication: (id: string) => void;
+  onSelectApplication?: (id: string) => void;
   onRefresh?: () => void;
 }
 
@@ -37,6 +38,15 @@ export function ApplicationList({
   onSelectApplication,
   onRefresh: _onRefresh,
 }: ApplicationListProps) {
+  const router = useRouter();
+
+  const handleSelectApplication = (id: string) => {
+    if (onSelectApplication) {
+      onSelectApplication(id);
+    } else {
+      router.push(`/admin/applications/${id}`);
+    }
+  };
   if (isLoading) {
     return (
       <div className="text-center py-8 text-muted-foreground">
@@ -72,17 +82,17 @@ export function ApplicationList({
             <TableRow key={app.id} className="cursor-pointer hover:bg-muted/50">
               <TableCell
                 className="font-medium"
-                onClick={() => onSelectApplication(app.id)}
+                onClick={() => handleSelectApplication(app.id)}
               >
                 {app.firstName} {app.lastName}
               </TableCell>
-              <TableCell onClick={() => onSelectApplication(app.id)}>
+              <TableCell onClick={() => handleSelectApplication(app.id)}>
                 {app.email}
               </TableCell>
-              <TableCell onClick={() => onSelectApplication(app.id)}>
+              <TableCell onClick={() => handleSelectApplication(app.id)}>
                 <Badge variant="secondary">{app.category}</Badge>
               </TableCell>
-              <TableCell onClick={() => onSelectApplication(app.id)}>
+              <TableCell onClick={() => handleSelectApplication(app.id)}>
                 <Badge
                   variant={
                     app.status === "active" ? "default" : "secondary"
@@ -91,12 +101,12 @@ export function ApplicationList({
                   {app.status ?? "active"}
                 </Badge>
               </TableCell>
-              <TableCell onClick={() => onSelectApplication(app.id)}>
+              <TableCell onClick={() => handleSelectApplication(app.id)}>
                 <Badge variant={app.isPublic ? "default" : "outline"}>
                   {app.isPublic ? "Public" : "Private"}
                 </Badge>
               </TableCell>
-              <TableCell onClick={() => onSelectApplication(app.id)}>
+              <TableCell onClick={() => handleSelectApplication(app.id)}>
                 {new Date(app.createdAt).toLocaleDateString("en-US", {
                   month: "short",
                   day: "numeric",
@@ -108,7 +118,7 @@ export function ApplicationList({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onSelectApplication(app.id)}
+                    onClick={() => handleSelectApplication(app.id)}
                   >
                     <Eye className="h-4 w-4" />
                   </Button>

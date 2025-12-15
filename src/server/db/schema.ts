@@ -9,6 +9,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -343,13 +344,6 @@ export const skillExperience = pgTable("skill_experience", {
   updatedAt,
 });
 
-export const applicationRelations = relations(application, ({ many }) => ({
-  skills: many(skill),
-  experiences: many(experience),
-  socials: many(social),
-  languages: many(language),
-}));
-
 export const languageRelations = relations(language, ({ one }) => ({
   application: one(application, {
     fields: [language.applicationId],
@@ -412,9 +406,46 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
   }),
 }));
 
+export const favorite = pgTable(
+  "favorite",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    applicationId: uuid("application_id")
+      .notNull()
+      .references(() => application.id, { onDelete: "cascade" }),
+    createdAt,
+    updatedAt,
+  },
+  (table) => ({
+    uniqueUserApplication: uniqueIndex(
+      "favorite_unique_user_application_idx",
+    ).on(table.userId, table.applicationId),
+  }),
+);
+
 export const userRelations = relations(user, ({ many }) => ({
   account: many(account),
   session: many(session),
   members: many(member),
   invitations: many(invitation),
+  favorites: many(favorite),
+}));
+
+export const favoriteRelations = relations(favorite, ({ one }) => ({
+  user: one(user, { fields: [favorite.userId], references: [user.id] }),
+  application: one(application, {
+    fields: [favorite.applicationId],
+    references: [application.id],
+  }),
+}));
+
+export const applicationRelations = relations(application, ({ many }) => ({
+  skills: many(skill),
+  experiences: many(experience),
+  socials: many(social),
+  languages: many(language),
+  favorites: many(favorite),
 }));
