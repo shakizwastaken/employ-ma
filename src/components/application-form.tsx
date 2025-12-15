@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -12,7 +12,10 @@ import { applicationFormSchema } from "@/server/api/validators/application";
 import type { ApplicationFormData } from "@/server/api/validators/application";
 import { extractFieldPaths, getFirstErrorStep } from "@/lib/error-utils";
 import { Step1UserIdentity } from "./steps/user-identity";
-import { Step2ProfessionalBaseline } from "./steps/professional-baseline";
+import {
+  Step2ProfessionalBaseline,
+  type Step2ProfessionalBaselineRef,
+} from "./steps/professional-baseline";
 import { Step3PersonalProfile } from "./steps/personal-profile";
 import { Step4LanguageProficiency } from "./steps/language-proficiency";
 import { Step5SocialProfiles } from "./steps/social-profiles";
@@ -33,6 +36,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const step2Ref = useRef<Step2ProfessionalBaselineRef>(null);
 
   const form = useForm<ApplicationFormData>({
     // @ts-expect-error - Known type issue with zodResolver and complex schemas
@@ -189,6 +193,19 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
   };
 
   const handleNext = async () => {
+    // Special handling for step 2: auto-add portfolio link if there's a value in the input
+    if (currentStep === 2 && step2Ref.current) {
+      const result = await step2Ref.current.tryAddPortfolioLink();
+      if (!result.success) {
+        // Show error and prevent navigation
+        toast.error("Portfolio link error", {
+          description:
+            result.error || "Please fix the portfolio link before continuing.",
+        });
+        return;
+      }
+    }
+
     const isValid = await validateStep(currentStep);
     if (isValid && currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
@@ -294,7 +311,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
       case 1:
         return <Step1UserIdentity initialEmail={initialEmail} />;
       case 2:
-        return <Step2ProfessionalBaseline />;
+        return <Step2ProfessionalBaseline ref={step2Ref} />;
       case 3:
         return <Step3PersonalProfile />;
       case 4:

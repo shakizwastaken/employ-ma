@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useImperativeHandle,
+  forwardRef,
+} from "react";
 import { Controller, useFormContext } from "react-hook-form";
 import {
   Field,
@@ -120,9 +127,7 @@ function CategoryInput({
     }
   };
 
-  const handleInputFocus = () => {
-    setIsOpen(true);
-  };
+  const handleInputFocus = () => setIsOpen(true);
 
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
@@ -270,200 +275,278 @@ function CategoryInput({
   );
 }
 
-export function Step2ProfessionalBaseline() {
-  const { control, watch, setValue, trigger, clearErrors } =
-    useFormContext<ApplicationFormData>();
-  const category = watch("category");
-  const portfolioLinks = watch("portfolioLinks") ?? [];
-  const [linkInput, setLinkInput] = useState("");
+export interface Step2ProfessionalBaselineRef {
+  tryAddPortfolioLink: () => Promise<{ success: boolean; error?: string }>;
+}
 
-  const requiresPortfolio = category
-    ? PORTFOLIO_REQUIRED_CATEGORIES.includes(category)
-    : false;
-  const isVideoEditor = category === VIDEO_EDITOR_CATEGORY;
-  const showPortfolioLinks = requiresPortfolio || isVideoEditor;
+export const Step2ProfessionalBaseline =
+  forwardRef<Step2ProfessionalBaselineRef | null>((_props, ref) => {
+    const { control, watch, setValue, trigger, clearErrors, formState } =
+      useFormContext<ApplicationFormData>();
+    const category = watch("category");
+    const portfolioLinks = watch("portfolioLinks") ?? [];
+    const [linkInput, setLinkInput] = useState("");
 
-  const handleAddPortfolioLink = async () => {
-    if (linkInput.trim() && !portfolioLinks.includes(linkInput.trim())) {
-      const newLinks = [...portfolioLinks, linkInput.trim()];
+    const requiresPortfolio = category
+      ? PORTFOLIO_REQUIRED_CATEGORIES.includes(category)
+      : false;
+    const isVideoEditor = category === VIDEO_EDITOR_CATEGORY;
+    const showPortfolioLinks = requiresPortfolio || isVideoEditor;
+
+    const handleAddPortfolioLink = async () => {
+      if (linkInput.trim() && !portfolioLinks.includes(linkInput.trim())) {
+        const newLinks = [...portfolioLinks, linkInput.trim()];
+        // Clear errors first, then set value with validation
+        clearErrors("portfolioLinks");
+        setValue("portfolioLinks", newLinks, { shouldValidate: true });
+        setLinkInput("");
+        // Trigger validation on the field and related root-level validations
+        await trigger(["portfolioLinks", "category"]);
+        return true;
+      }
+      return false;
+    };
+
+    // Expose function to parent component
+    useImperativeHandle(ref, () => ({
+      tryAddPortfolioLink: async () => {
+        // Only try to add if portfolio links are applicable
+        if (!showPortfolioLinks) {
+          return { success: true };
+        }
+
+        // If input is empty, allow navigation (validation will catch required fields later)
+        if (!linkInput.trim()) {
+          return { success: true };
+        }
+
+        // If there's a value in the input, validate and try to add it
+        const trimmedLink = linkInput.trim();
+
+        // Validate minimum length (at least 3 characters)
+        if (trimmedLink.length < 3) {
+          return {
+            success: false,
+            error:
+              "Please enter a valid link. The link must be at least 3 characters long.",
+          };
+        }
+
+        try {
+          // Check if already exists
+          if (portfolioLinks.includes(trimmedLink)) {
+            setLinkInput("");
+            return { success: true };
+          }
+
+          const newLinks = [...portfolioLinks, trimmedLink];
+          clearErrors("portfolioLinks");
+          setValue("portfolioLinks", newLinks, { shouldValidate: true });
+          setLinkInput("");
+
+          // Trigger validation
+          const isValid = await trigger(["portfolioLinks", "category"]);
+
+          if (!isValid) {
+            // Validation failed - get the error message
+            const portfolioError = formState.errors.portfolioLinks;
+            const errorMessage =
+              portfolioError?.message ||
+              "Please fix the portfolio link errors before continuing";
+            return {
+              success: false,
+              error: errorMessage,
+            };
+          }
+
+          return { success: true };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to add portfolio link",
+          };
+        }
+      },
+    }));
+
+    const handleRemovePortfolioLink = async (linkToRemove: string) => {
+      const newLinks = portfolioLinks.filter(
+        (link: string) => link !== linkToRemove,
+      );
       // Clear errors first, then set value with validation
       clearErrors("portfolioLinks");
       setValue("portfolioLinks", newLinks, { shouldValidate: true });
-      setLinkInput("");
       // Trigger validation on the field and related root-level validations
       await trigger(["portfolioLinks", "category"]);
-    }
-  };
+    };
 
-  const handleRemovePortfolioLink = async (linkToRemove: string) => {
-    const newLinks = portfolioLinks.filter(
-      (link: string) => link !== linkToRemove,
-    );
-    // Clear errors first, then set value with validation
-    clearErrors("portfolioLinks");
-    setValue("portfolioLinks", newLinks, { shouldValidate: true });
-    // Trigger validation on the field and related root-level validations
-    await trigger(["portfolioLinks", "category"]);
-  };
+    return (
+      <div className="space-y-4 sm:space-y-6">
+        <div>
+          <h2 className="text-xl font-semibold sm:text-2xl">
+            Professional Baseline
+          </h2>
+          <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+            Tell us about your professional background
+          </p>
+        </div>
 
-  return (
-    <div className="space-y-4 sm:space-y-6">
-      <div>
-        <h2 className="text-xl font-semibold sm:text-2xl">
-          Professional Baseline
-        </h2>
-        <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-          Tell us about your professional background
-        </p>
-      </div>
-
-      <FieldGroup>
-        <Controller
-          name="highestFormalEducationLevel"
-          control={control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="highestFormalEducationLevel">
-                Highest Formal Education Level{" "}
-                <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Select
-                value={field.value ?? ""}
-                onValueChange={(value) => {
-                  field.onChange(value);
-                }}
-              >
-                <SelectTrigger id="highestFormalEducationLevel">
-                  <SelectValue placeholder="Select education level" />
-                </SelectTrigger>
-                <SelectContent>
-                  {educationLevels.map((level) => (
-                    <SelectItem key={level.value} value={level.value}>
-                      {level.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <Controller
-          name="currentJobStatus"
-          control={control}
-          render={({ field, fieldState }) => (
-            <Field data-invalid={fieldState.invalid}>
-              <FieldLabel htmlFor="currentJobStatus">
-                Current Job Status <span className="text-destructive">*</span>
-              </FieldLabel>
-              <Select
-                value={field.value ?? ""}
-                onValueChange={(value) => {
-                  field.onChange(value);
-                }}
-              >
-                <SelectTrigger id="currentJobStatus">
-                  <SelectValue placeholder="Select job status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {jobStatuses.map((status) => (
-                    <SelectItem key={status.value} value={status.value}>
-                      {status.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
-            </Field>
-          )}
-        />
-
-        <Controller
-          name="category"
-          control={control}
-          render={({ field, fieldState }) => (
-            <CategoryInput
-              value={field.value ?? ""}
-              onChange={field.onChange}
-              invalid={fieldState.invalid}
-              error={fieldState.error}
-            />
-          )}
-        />
-
-        {showPortfolioLinks && (
+        <FieldGroup>
           <Controller
-            name="portfolioLinks"
+            name="highestFormalEducationLevel"
             control={control}
-            render={({ fieldState }) => (
+            render={({ field, fieldState }) => (
               <Field data-invalid={fieldState.invalid}>
-                <FieldLabel>
-                  Portfolio / Previous Project Links
-                  {requiresPortfolio && (
-                    <span className="text-destructive"> *</span>
-                  )}
-                  {isVideoEditor && (
-                    <span className="text-muted-foreground text-xs font-normal">
-                      {" "}
-                      (Required if no portfolio file is uploaded)
-                    </span>
-                  )}
+                <FieldLabel htmlFor="highestFormalEducationLevel">
+                  Highest Formal Education Level{" "}
+                  <span className="text-destructive">*</span>
                 </FieldLabel>
-                <div className="flex flex-wrap gap-2">
-                  {portfolioLinks.map((link: string) => (
-                    <span
-                      key={link}
-                      className="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm"
-                    >
-                      <a
-                        href={link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary hover:underline"
-                      >
-                        {link}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={() => handleRemovePortfolioLink(link)}
-                        className="hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    value={linkInput}
-                    onChange={(e) => setLinkInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        void handleAddPortfolioLink();
-                      }
-                    }}
-                    placeholder="Add portfolio or project URL"
-                    type="url"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleAddPortfolioLink}
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add
-                  </Button>
-                </div>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                  }}
+                >
+                  <SelectTrigger id="highestFormalEducationLevel">
+                    <SelectValue placeholder="Select education level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {educationLevels.map((level) => (
+                      <SelectItem key={level.value} value={level.value}>
+                        {level.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 {fieldState.invalid && (
                   <FieldError errors={[fieldState.error]} />
                 )}
               </Field>
             )}
           />
-        )}
-      </FieldGroup>
-    </div>
-  );
-}
+
+          <Controller
+            name="currentJobStatus"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Field data-invalid={fieldState.invalid}>
+                <FieldLabel htmlFor="currentJobStatus">
+                  Current Job Status <span className="text-destructive">*</span>
+                </FieldLabel>
+                <Select
+                  value={field.value ?? ""}
+                  onValueChange={(value) => {
+                    field.onChange(value);
+                  }}
+                >
+                  <SelectTrigger id="currentJobStatus">
+                    <SelectValue placeholder="Select job status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jobStatuses.map((status) => (
+                      <SelectItem key={status.value} value={status.value}>
+                        {status.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {fieldState.invalid && (
+                  <FieldError errors={[fieldState.error]} />
+                )}
+              </Field>
+            )}
+          />
+
+          <Controller
+            name="category"
+            control={control}
+            render={({ field, fieldState }) => (
+              <CategoryInput
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                invalid={fieldState.invalid}
+                error={fieldState.error}
+              />
+            )}
+          />
+
+          {showPortfolioLinks && (
+            <Controller
+              name="portfolioLinks"
+              control={control}
+              render={({ fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel>
+                    Portfolio / Previous Project Links
+                    {requiresPortfolio && (
+                      <span className="text-destructive"> *</span>
+                    )}
+                    {isVideoEditor && (
+                      <span className="text-muted-foreground text-xs font-normal">
+                        {" "}
+                        (Required if no portfolio file is uploaded)
+                      </span>
+                    )}
+                  </FieldLabel>
+                  <div className="flex flex-wrap gap-2">
+                    {portfolioLinks.map((link: string) => (
+                      <span
+                        key={link}
+                        className="bg-muted inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm"
+                      >
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {link}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePortfolioLink(link)}
+                          className="hover:text-destructive"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <Input
+                      value={linkInput}
+                      onChange={(e) => setLinkInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void handleAddPortfolioLink();
+                        }
+                      }}
+                      placeholder="Add portfolio or project URL"
+                      type="url"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleAddPortfolioLink}
+                    >
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add
+                    </Button>
+                  </div>
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
+          )}
+        </FieldGroup>
+      </div>
+    );
+  });
+
+Step2ProfessionalBaseline.displayName = "Step2ProfessionalBaseline";
