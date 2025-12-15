@@ -42,7 +42,7 @@ export function ApplicationList({
 
   const handleRowClick = (
     id: string,
-    e: React.MouseEvent<HTMLTableRowElement>,
+    e: React.MouseEvent<HTMLElement>,
   ) => {
     // Handle modifier keys for new tab/window
     if (e.ctrlKey || e.metaKey || e.button === 1) {
