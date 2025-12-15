@@ -351,7 +351,7 @@ export const Step2ProfessionalBaseline =
             // Validation failed - get the error message
             const portfolioError = formState.errors.portfolioLinks;
             const errorMessage =
-              portfolioError?.message ||
+              portfolioError?.message ??
               "Please fix the portfolio link errors before continuing";
             return {
               success: false,

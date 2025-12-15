@@ -200,7 +200,7 @@ export function ApplicationForm({ initialEmail }: ApplicationFormProps) {
         // Show error and prevent navigation
         toast.error("Portfolio link error", {
           description:
-            result.error || "Please fix the portfolio link before continuing.",
+            result.error ?? "Please fix the portfolio link before continuing.",
         });
         return;
       }
