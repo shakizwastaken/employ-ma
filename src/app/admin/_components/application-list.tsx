@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ProfileCircle } from "@/components/ui/profile-circles";
 import { Eye, ExternalLink } from "lucide-react";
 
 interface Application {
@@ -23,6 +24,13 @@ interface Application {
   createdAt: Date;
   isPublic: boolean;
   publicToken: string | null;
+  favoritedBy?: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+  };
+  favoritedAt?: Date;
 }
 
 interface ApplicationListProps {
@@ -40,10 +48,7 @@ export function ApplicationList({
 }: ApplicationListProps) {
   const router = useRouter();
 
-  const handleRowClick = (
-    id: string,
-    e: React.MouseEvent<HTMLElement>,
-  ) => {
+  const handleRowClick = (id: string, e: React.MouseEvent<HTMLElement>) => {
     // Handle modifier keys for new tab/window
     if (e.ctrlKey || e.metaKey || e.button === 1) {
       // Ctrl/Cmd click or middle click - open in new tab
@@ -60,7 +65,7 @@ export function ApplicationList({
   };
   if (isLoading) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="text-muted-foreground py-8 text-center">
         Loading applications...
       </div>
     );
@@ -68,7 +73,7 @@ export function ApplicationList({
 
   if (applications.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
+      <div className="text-muted-foreground py-8 text-center">
         No applications found
       </div>
     );
@@ -85,6 +90,7 @@ export function ApplicationList({
             <TableHead>Status</TableHead>
             <TableHead>Public</TableHead>
             <TableHead>Created</TableHead>
+            <TableHead>Favorited By</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -92,7 +98,7 @@ export function ApplicationList({
           {applications.map((app) => (
             <TableRow
               key={app.id}
-              className="cursor-pointer hover:bg-muted/50"
+              className="hover:bg-muted/50 cursor-pointer"
               onClick={(e) => handleRowClick(app.id, e)}
               onAuxClick={(e) => {
                 // Handle middle mouse button
@@ -111,9 +117,7 @@ export function ApplicationList({
               </TableCell>
               <TableCell>
                 <Badge
-                  variant={
-                    app.status === "active" ? "default" : "secondary"
-                  }
+                  variant={app.status === "active" ? "default" : "secondary"}
                 >
                   {app.status ?? "active"}
                 </Badge>
@@ -129,6 +133,26 @@ export function ApplicationList({
                   day: "numeric",
                   year: "numeric",
                 })}
+              </TableCell>
+              <TableCell>
+                {app.favoritedBy ? (
+                  <div className="flex items-center gap-2">
+                    <ProfileCircle
+                      name={app.favoritedBy.name}
+                      email={app.favoritedBy.email}
+                      image={app.favoritedBy.image}
+                      size="sm"
+                    />
+                    <div className="text-sm">
+                      <div className="font-medium">{app.favoritedBy.name}</div>
+                      <div className="text-muted-foreground text-xs">
+                        {app.favoritedBy.email}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <span className="text-muted-foreground text-sm">—</span>
+                )}
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-2">
@@ -171,4 +195,3 @@ export function ApplicationList({
     </div>
   );
 }
-

@@ -12,6 +12,7 @@ import {
   language,
   skill,
   social,
+  user,
 } from "@/server/db/schema";
 
 const listApplicationsSchema = z.object({
@@ -697,16 +698,18 @@ export const adminRouter = createTRPCRouter({
         });
       }
 
-      const userId = ctx.session.user.id;
-
-      // Get favorite application IDs
+      // Get all favorites from all staff with user information
       const favorites = await ctx.db
         .select({
           applicationId: favorite.applicationId,
           favoritedAt: favorite.createdAt,
+          userId: user.id,
+          userName: user.name,
+          userEmail: user.email,
+          userImage: user.image,
         })
         .from(favorite)
-        .where(eq(favorite.userId, userId))
+        .innerJoin(user, eq(favorite.userId, user.id))
         .orderBy(desc(favorite.createdAt))
         .limit(input.limit)
         .offset(input.offset);
@@ -728,20 +731,32 @@ export const adminRouter = createTRPCRouter({
         .from(application)
         .where(inArray(application.id, applicationIds));
 
-      // Get total count
+      // Get total count of all favorites
       const totalResult = await ctx.db
         .select({ count: sql<number>`count(*)` })
-        .from(favorite)
-        .where(eq(favorite.userId, userId));
+        .from(favorite);
       const total = Number(totalResult[0]?.count ?? 0);
 
-      // Sort applications by favorite order
+      // Sort applications by favorite order and include favoritedBy info
       const applicationsMap = new Map(
         applications.map((app) => [app.id, app]),
       );
       const sortedApplications = favorites
-        .map((f) => applicationsMap.get(f.applicationId))
-        .filter((app): app is NonNullable<typeof app> => app !== undefined);
+        .map((f) => {
+          const app = applicationsMap.get(f.applicationId);
+          if (!app) return null;
+          return {
+            ...app,
+            favoritedBy: {
+              id: f.userId,
+              name: f.userName,
+              email: f.userEmail,
+              image: f.userImage,
+            },
+            favoritedAt: f.favoritedAt,
+          };
+        })
+        .filter((app): app is NonNullable<typeof app> => app !== null);
 
       return {
         applications: sortedApplications,

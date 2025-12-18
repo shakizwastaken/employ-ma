@@ -31,7 +31,7 @@ export function FavoritesPageClient() {
               Staff Favorites
             </h1>
             <p className="text-muted-foreground mt-1">
-              Your favorited job applications
+              All favorited job applications from all staff
             </p>
           </div>
         </div>
