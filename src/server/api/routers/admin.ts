@@ -738,9 +738,7 @@ export const adminRouter = createTRPCRouter({
       const total = Number(totalResult[0]?.count ?? 0);
 
       // Sort applications by favorite order and include favoritedBy info
-      const applicationsMap = new Map(
-        applications.map((app) => [app.id, app]),
-      );
+      const applicationsMap = new Map(applications.map((app) => [app.id, app]));
       const sortedApplications = favorites
         .map((f) => {
           const app = applicationsMap.get(f.applicationId);

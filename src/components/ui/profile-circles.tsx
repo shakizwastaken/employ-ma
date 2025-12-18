@@ -24,7 +24,7 @@ function getColorFromName(name: string): string {
   for (let i = 0; i < name.length; i++) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   const hue = hash % 360;
   return `hsl(${hue}, 65%, 50%)`;
 }
@@ -48,9 +48,9 @@ export function ProfileCircle({
   return (
     <div
       className={cn(
-        "rounded-full flex items-center justify-center font-medium text-white border-2 border-background shadow-sm",
+        "border-background flex items-center justify-center rounded-full border-2 font-medium text-white shadow-sm",
         sizeClasses[size],
-        className
+        className,
       )}
       style={{ backgroundColor: bgColor }}
       title={email ? `${name} (${email})` : name}
@@ -59,7 +59,7 @@ export function ProfileCircle({
         <img
           src={image}
           alt={name}
-          className="rounded-full w-full h-full object-cover"
+          className="h-full w-full rounded-full object-cover"
         />
       ) : (
         <span>{initials}</span>
@@ -87,9 +87,7 @@ export function ProfileCircles({
   className,
 }: ProfileCirclesProps) {
   if (profiles.length === 0) {
-    return (
-      <span className="text-muted-foreground text-sm">—</span>
-    );
+    return <span className="text-muted-foreground text-sm">—</span>;
   }
 
   const visible = profiles.slice(0, maxVisible);
@@ -110,9 +108,13 @@ export function ProfileCircles({
       {remaining > 0 && (
         <div
           className={cn(
-            "rounded-full flex items-center justify-center font-medium text-muted-foreground bg-muted border-2 border-background shadow-sm",
-            size === "sm" ? "h-6 w-6 text-xs" : size === "md" ? "h-8 w-8 text-sm" : "h-10 w-10 text-base",
-            "-ml-2"
+            "text-muted-foreground bg-muted border-background flex items-center justify-center rounded-full border-2 font-medium shadow-sm",
+            size === "sm"
+              ? "h-6 w-6 text-xs"
+              : size === "md"
+                ? "h-8 w-8 text-sm"
+                : "h-10 w-10 text-base",
+            "-ml-2",
           )}
           title={`${remaining} more`}
         >
@@ -122,4 +124,3 @@ export function ProfileCircles({
     </div>
   );
 }
-

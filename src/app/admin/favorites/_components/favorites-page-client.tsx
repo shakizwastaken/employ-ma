@@ -26,8 +26,8 @@ export function FavoritesPageClient() {
             Back to Dashboard
           </Button>
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2">
-              <Heart className="h-6 w-6 fill-current text-primary" />
+            <h1 className="flex items-center gap-2 text-3xl font-bold">
+              <Heart className="text-primary h-6 w-6 fill-current" />
               Staff Favorites
             </h1>
             <p className="text-muted-foreground mt-1">
@@ -39,17 +39,15 @@ export function FavoritesPageClient() {
 
       <Card>
         <CardHeader>
-          <CardTitle>
-            Favorited Applications ({data?.total ?? 0})
-          </CardTitle>
+          <CardTitle>Favorited Applications ({data?.total ?? 0})</CardTitle>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-muted-foreground py-8 text-center">
               Loading favorites...
             </div>
           ) : data?.applications.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-muted-foreground py-8 text-center">
               No favorited applications yet. Start favoriting applications to
               see them here.
             </div>
@@ -97,4 +95,3 @@ export function FavoritesPageClient() {
     </div>
   );
 }
-
